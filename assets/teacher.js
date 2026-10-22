@@ -2,6 +2,7 @@ import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE } from "./items
 import { analyze, readPreCsv, keyOf } from "./analysis.js";
 import { fmt, fmtP, stars } from "./stats.js";
 import { makeXlsx } from "./xlsx.js";
+import { autoCode } from "./autocode.js";
 
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");
@@ -202,20 +203,27 @@ function secEssay(R) {
   const status = el("span", { class: "small" });
   const aiBtn = el("button", { class: "tbtn solid", type: "button", disabled: uncoded.length === 0, text: `AI로 분류하기 (미분류 ${uncoded.length}개)`, onclick: async () => {
     aiBtn.disabled = true;
+    let usedRule = 0;
     try {
       for (let i = 0; i < uncoded.length; i += 20) {
         status.textContent = `분류하는 중… ${Math.min(i + 20, uncoded.length)}/${uncoded.length}`;
         const chunk = uncoded.slice(i, i + 20);
-        const res = await fetch("/api/classify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: chunk.map(r => ({ id: r.id, ...r.essay })) }) });
-        if (!res.ok) throw new Error(String(res.status));
-        const out = await res.json();
-        const items = (out.items || []).map(x => ({ id: x.id, codes: x.codes, source: "ai" }));
+        let items;
+        try {
+          const res = await fetch("api/classify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: chunk.map(r => ({ id: r.id, ...r.essay })) }) });
+          if (!res.ok) throw new Error(String(res.status));
+          items = ((await res.json()).items || []).map(x => ({ id: x.id, codes: x.codes, source: "ai" }));
+          if (!items.length) throw new Error("empty");
+        } catch (e) { // AI가 안 되면 단어 규칙으로 초안
+          items = chunk.map(r => ({ id: r.id, codes: autoCode(r.essay), source: "auto" })); usedRule += items.length;
+        }
         const saved = await rpc("post_survey_save_codes", { pw: PW, items });
         if (saved.error) throw new Error(saved.error);
-        for (const x of items) { const r = DATA.rows.find(z => z.id === x.id); if (r) { r.codes = x.codes; r.code_source = "ai"; } }
+        for (const x of items) { const r = DATA.rows.find(z => z.id === x.id); if (r) { r.codes = x.codes; r.code_source = x.source; } }
       }
-      toast("AI 분류를 마쳤어요. 내용을 보고 고쳐 주세요."); renderAll(); location.hash = "#essay";
-    } catch (e) { status.textContent = "AI 분류에 실패했어요. 잠시 뒤 다시 눌러 주세요. (직접 체크해도 돼요)"; aiBtn.disabled = false; }
+      toast(usedRule ? `AI 연결이 안 돼서 ${usedRule}개는 단어 규칙으로 분류했어요. 확인해 주세요.` : "AI 분류를 마쳤어요. 내용을 보고 고쳐 주세요.");
+      renderAll(); location.hash = "#essay";
+    } catch (e) { status.textContent = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; aiBtn.disabled = false; }
   } });
   const saveBtn = el("button", { class: "tbtn", type: "button", disabled: dirtyCodes.size === 0, text: `고친 분류 저장${dirtyCodes.size ? ` (${dirtyCodes.size})` : ""}`, onclick: async () => {
     saveBtn.disabled = true;
@@ -236,7 +244,7 @@ function secEssay(R) {
       rows.map(r => {
         const codes = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
         return el("div", { class: "essay-card" },
-          el("div", { class: "meta", text: `${r.grade}-${r.cls} ${r.num}번 · ${r.at}${r.code_source ? ` · ${r.code_source === "ai" ? "AI 분류" : "교사 확인"}` : ""}` }),
+          el("div", { class: "meta", text: `${r.grade}-${r.cls} ${r.num}번 · ${r.at}${r.code_source ? ` · ${r.code_source === "teacher" ? "교사 확인" : r.code_source === "ai" ? "AI 분류" : "단어 규칙 분류"}` : ""}` }),
           el("p", {}, el("b", { text: "① " }), r.essay.first || "—"), el("p", {}, el("b", { text: "② " }), r.essay.question || "—"), el("p", {}, el("b", { text: "③ " }), r.essay.revised || "—"),
           el("div", { class: "codes", role: "group", "aria-label": "분류" }, ESSAY_CODES.map(c => el("label", {}, el("input", { type: "checkbox", checked: codes.has(c), onchange: e => {
             const cur = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
@@ -273,7 +281,7 @@ function sentences(R) {
   if (cv && cv.n >= 3) out.push(`큐리 기록과 연결된 ${cv.n}명에서 영역Ⅰ 향상 정도와 큐리 단계별 체크 통과 향상의 스피어만 상관은 ρ=${fmt(cv.rho, 2)}(${pTxt(cv.p)})였다.`);
   if (R.essay.coded) {
     const f = [...R.essay.freq].filter(x => x.code !== "기타").sort((a, b) => b.n - a.n);
-    out.push(`서술형(31번) ${R.essay.coded}개 응답에서 AI의 질문 후 가장 많이 고친 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
+    out.push(`서술형(31번) ${R.essay.coded}개 응답에서 AI의 질문을 받고 가장 많이 고친 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
   }
   return out;
 }

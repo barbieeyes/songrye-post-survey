@@ -1,5 +1,7 @@
 // 사후 설문 문항 — 문구는 설문지(사후검사_설문지)와 한 글자도 다르지 않게 유지
-export const APP_VERSION = "2026-10-22a";
+export const APP_VERSION = "2026-10-22b";
+// 구글 스프레드시트(Apps Script 웹 앱) 주소 — 비어 있으면 시트로는 보내지 않음
+export const SHEET_URL = "";
 export const SUPABASE_URL = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
 export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmFheHh3cXFyYnBubG95anpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMjI1MTgsImV4cCI6MjEwMTU5ODUxOH0.8TKT8aExXiyazDY313G9BHTvZCSu2yrTdxlgwxpNCB8"; // 공개용 anon 키 (RLS: 추가만 가능)
 

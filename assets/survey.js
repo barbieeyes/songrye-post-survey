@@ -1,4 +1,4 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS } from "./items.js";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS } from "./items.js";
 
 const DRAFT_KEY = "post-survey-draft-v1";
 const DONE_KEY = "post-survey-done-v1";
@@ -211,6 +211,9 @@ async function submit() {
     let res = await send().catch(() => null);
     if (!res || !res.ok) { await new Promise(r => setTimeout(r, 1200)); res = await send(); }
     if (!res.ok) throw new Error(String(res.status));
+    if (SHEET_URL) { // 구글 시트에도 한 줄 (실패해도 제출은 완료로 봄 — 원본은 데이터베이스)
+      await Promise.race([fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => null), new Promise(r => setTimeout(r, 4000))]);
+    }
     const now = new Date();
     const info = { grade: S.grade, cls: S.cls, num: S.num, at: `${now.getMonth() + 1}월 ${now.getDate()}일 ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` };
     store.set(DONE_KEY, info);

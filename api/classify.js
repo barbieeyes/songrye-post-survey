@@ -1,4 +1,4 @@
-// 서술형 31번 분류 (교사 화면에서만 호출). Vercel 환경변수 ANTHROPIC_API_KEY 필요.
+// 서술형 31번 AI 분류 (교사 화면에서만 호출). ANTHROPIC_API_KEY가 있으면 직접, 없으면 큐리 앱(/api/curi)을 거쳐 호출.
 export const config = { maxDuration: 60 };
 
 const CODES = ["용어·단위", "근거·자료", "원리·이유", "사고 과정·순서", "기타"];
@@ -6,7 +6,6 @@ const CODES = ["용어·단위", "근거·자료", "원리·이유", "사고 과
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST만 가능해요" });
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "서버에 API 키가 없어요" });
   const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 25) : [];
   if (!items.length) return res.status(400).json({ error: "items가 필요해요" });
   const clip = s => String(s || "").replace(/\s+/g, " ").trim().slice(0, 600);
@@ -23,14 +22,24 @@ ${list}
 
 순수 JSON만 응답: {"results":[{"i":0,"codes":["근거·자료"]}, ...]}`;
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
-    });
-    if (!r.ok) return res.status(502).json({ error: "AI 호출 실패" });
-    const data = await r.json();
-    const text = (data.content || []).map(c => c.text || "").join("");
+    let text = "";
+    if (apiKey) { // 이 프로젝트에 키가 있으면 직접 호출
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
+      });
+      if (!r.ok) return res.status(502).json({ error: "AI 호출 실패" });
+      const data = await r.json();
+      text = (data.content || []).map(c => c.text || "").join("");
+    } else { // 키가 없으면 큐리 앱의 AI 연결을 거쳐 호출 (키를 따로 다루지 않음)
+      const r = await fetch("https://curi-coach.vercel.app/api/curi", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, max_tokens: 2000 })
+      });
+      if (!r.ok) return res.status(502).json({ error: "AI 호출 실패" });
+      text = (await r.json()).text || "";
+    }
     const m = text.match(/\{[\s\S]*\}/);
     const parsed = m ? JSON.parse(m[0]) : { results: [] };
     const out = items.map((it, i) => {

@@ -32,3 +32,9 @@ node tests/make_fake.mjs && python3 tests/expected.py
 node tests/stats_dump.mjs | python3 tests/check_stats.py   # 통계 함수 ↔ scipy 320개 대조
 node tests/e2e.mjs                                         # 학생·교사 화면 59개 검사 (Playwright)
 ```
+
+## 구글 스프레드시트로도 받기
+`apps-script/Code.gs`를 응답 시트의 Apps Script에 붙여 넣고 웹 앱으로 배포한 뒤, 나온 URL을 `assets/items.js`의 `SHEET_URL`에 넣어요. 원본 데이터는 Supabase이고, 시트는 사본이에요.
+
+## GitHub Pages로 열 때
+Pages에서는 `api/classify`(AI 분류)가 동작하지 않아 단어 규칙 분류로 대신해요. AI 분류까지 쓰려면 Vercel로 배포해요(키가 없으면 큐리 앱 AI 연결을 거쳐 호출).
