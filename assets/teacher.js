@@ -1,5 +1,5 @@
 import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE } from "./items.js";
-import { analyze, readPreCsv, keyOf } from "./analysis.js";
+import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js";
 import { fmt, fmtP, stars } from "./stats.js";
 import { makeXlsx } from "./xlsx.js";
 import { autoCode } from "./autocode.js";
@@ -96,6 +96,7 @@ function renderAll() {
     el("div", { class: "thead" },
       el("div", {}, el("h1", { text: "📊 사후 설문 분석" }), el("div", { class: "small", text: `${DATA.at} 기준 · 같은 학년·반·번호는 가장 최근 응답만 분석` })),
       el("div", { class: "tools" },
+        el("button", { class: "tbtn solid", type: "button", disabled: !R.N, onclick: () => exportXlsx(R), text: "📥 학생 결과 엑셀로 내려받기" }),
         el("button", { class: "tbtn", type: "button", onclick: () => load(PW), text: "↻ 새로고침" }),
         el("button", { class: "tbtn", type: "button", onclick: () => { ss.del(PW_KEY); PW = null; DATA = null; PRE = null; renderLogin(); }, text: "나가기" }))),
     el("nav", { class: "tnav", "aria-label": "분석 메뉴" }, nav.map(([id, t]) => el("a", { href: `#${id}`, text: t }))),
@@ -292,6 +293,10 @@ function exportXlsx(R) {
   const raw = [head, ...R.rows.map(r => [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오",
     ...allItems.flatMap(it => { const a = r.answers[it.n] ?? r.answers[String(it.n)]; return it.dual ? [a ? a.pre : "", a ? a.now : ""] : [a ?? "해당 없음"]; }),
     r.essay.first || "", r.essay.question || "", r.essay.revised || "", (r.codes || []).join(", ")])];
+  const r2 = v => Number.isFinite(v) ? Math.round(v * 100) / 100 : "";
+  const per = [["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", "Ⅰ 수업 전 평균", "Ⅰ 수업 후 평균", "Ⅰ 향상(후−전)", ...DOMAINS.filter(d => !d.dual).map(d => `${d.short} 평균`), "31 분류"],
+    ...R.rows.map(r => { const D1 = DOMAINS[0], pre = domainScore(r, D1, "pre"), now = domainScore(r, D1, "now");
+      return [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오", r2(pre), r2(now), r2(now - pre), ...DOMAINS.filter(d => !d.dual).map(d => r2(domainScore(r, d, "now"))), (r.codes || []).join(", ")]; })];
   const summ = [["영역", "구분", "n", "평균", "표준편차", "Cronbach α"]];
   for (const d of R.domains) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([d.name, d.dual ? (w === "pre" ? "수업 전" : "수업 후") : "", d[w].n, +fmt(d[w].mean, 3), +fmt(d[w].sd, 3), Number.isFinite(d[w].alpha.alpha) ? +fmt(d[w].alpha.alpha, 3) : ""]);
   summ.push([]); summ.push(["번호", "문항", "역채점", "구분", "n", "평균", "표준편차", "1", "2", "3", "4", "5"]);
@@ -302,7 +307,7 @@ function exportXlsx(R) {
   if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: "영역Ⅵ 평균", pre: "" }]) tt.push([`영역Ⅵ 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
   for (const v of R.curi.vars) tt.push(["큐리 연결(스피어만)", `영역Ⅰ 향상 × ${v.label}`, v.n, "", "", "", "", "", "", "", Number.isFinite(v.p) ? +v.p.toPrecision(4) : "", Number.isFinite(v.rho) ? +fmt(v.rho, 3) : ""]);
   const es = [["학년", "반", "번호", "①처음", "②질문", "③수정한것", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
-  const blob = makeXlsx([{ name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);
+  const blob = makeXlsx([{ name: "학생별 점수", rows: per }, { name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);
   const a = el("a", { href: URL.createObjectURL(blob), download: `사후설문_분석_${DATA.at.replace(/[ :]/g, "-")}.xlsx` });
   document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
@@ -316,8 +321,8 @@ function secReport(R) {
     s.length ? s.map(x => el("div", { class: "sentence", text: x })) : el("p", { class: "small", text: "응답이 쌓이면 문장이 만들어져요." }),
     el("div", { class: "tools" },
       el("button", { class: "tbtn", type: "button", disabled: !s.length, onclick: async () => { try { await navigator.clipboard.writeText(all); toast("문장을 복사했어요."); } catch (e) { toast("복사하지 못했어요."); } }, text: "문장 모두 복사" }),
-      el("button", { class: "tbtn solid", type: "button", disabled: !R.N, onclick: () => exportXlsx(R), text: "엑셀 파일 내려받기" })),
-    el("p", { class: "note", text: "엑셀 시트: 원자료(원점수) · 영역별 요약 · t검정·상관 · 서술형 분류. 학생 이름은 들어 있지 않아요." }));
+      el("button", { class: "tbtn solid", type: "button", disabled: !R.N, onclick: () => exportXlsx(R), text: "📥 학생 결과 엑셀로 내려받기" })),
+    el("p", { class: "note", text: "엑셀 시트: 학생별 점수(영역 평균, 역채점 반영) · 원자료(원점수) · 영역별 요약 · t검정·상관 · 서술형 분류. 학생 이름은 들어 있지 않아요." }));
 }
 
 // 시작
