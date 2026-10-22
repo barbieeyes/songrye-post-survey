@@ -81,7 +81,7 @@ function gainChart(items) {
     svg.append(svgEl("text", { x: left + w + 6, y: y + 18, "font-size": 12.5, fill: "#22243A" }, `${fmt(it.diff)}${stars(it.p)}`));
   });
   svg.append(svgEl("line", { x1: left, x2: left, y1: top, y2: top + items.length * rowH, stroke: "#8A8DA6" }));
-  svg.append(svgEl("text", { x: left, y: H - 6, "font-size": 12, fill: "#5B5E78" }, "막대 = 지금 − 수업 전 (점수 차이) · 진한 색 = p<.05"));
+  svg.append(svgEl("text", { x: left, y: H - 6, "font-size": 12, fill: "#5B5E78" }, "막대 = 수업 후 − 수업 전 (점수 차이) · 진한 색 = p<.05"));
   return svg;
 }
 
@@ -90,7 +90,7 @@ function renderAll() {
   const rows = (DATA.rows || []).map(r => ({ ...r, codes: dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : r.codes }));
   RES = analyze(rows, DATA.curi || [], PRE);
   const R = RES;
-  const nav = [["status", "응답 현황"], ["domains", "영역별 결과"], ["prepost", "수업 전·지금"], ["pre", "사전 설문 비교"], ["groups", "집단 비교"], ["curi", "큐리 기록 연결"], ["essay", "서술형"], ["report", "보고서 문장·내보내기"]];
+  const nav = [["status", "응답 현황"], ["domains", "영역별 결과"], ["prepost", "수업 전·후"], ["pre", "사전 설문 비교"], ["groups", "집단 비교"], ["curi", "큐리 기록 연결"], ["essay", "서술형"], ["report", "보고서 문장·내보내기"]];
   const sections = [secStatus(R), secDomains(R), secPrePost(R), secPre(R), secGroups(R), secCuri(R), secEssay(R), secReport(R)];
   $app.replaceChildren(
     el("div", { class: "thead" },
@@ -117,7 +117,7 @@ function secDomains(R) {
   for (const d of R.domains) {
     for (const w of d.dual ? ["pre", "now"] : ["now"]) {
       const s = d[w];
-      sum.push([`${d.short}${d.dual ? (w === "pre" ? " (수업 전)" : " (지금)") : ""}`, s.n, fmt(s.mean), fmt(s.sd), Number.isFinite(s.alpha.alpha) ? fmt(s.alpha.alpha, 3) : "–"]);
+      sum.push([`${d.short}${d.dual ? (w === "pre" ? " (수업 전)" : " (수업 후)") : ""}`, s.n, fmt(s.mean), fmt(s.sd), Number.isFinite(s.alpha.alpha) ? fmt(s.alpha.alpha, 3) : "–"]);
     }
   }
   const legend = el("div", { class: "legend" }, SCALE.map((s, i) => el("span", {}, el("i", { style: `background:${DIST_COLORS[i]}` }), `${i + 1} ${s}`)));
@@ -129,7 +129,7 @@ function secDomains(R) {
     legend,
     R.domains.map(d => el("div", { style: "margin-top:14px" },
       el("h3", { style: "font-size:15.5px;margin:10px 0 2px", text: d.name }),
-      tableBlock(d.dual ? ["번호", "문항", "수업 전 평균", "수업 전 SD", "지금 평균", "지금 SD", "지금 분포"] : ["번호", "문항", "n", "평균", "표준편차", "분포(원점수)"],
+      tableBlock(d.dual ? ["번호", "문항", "수업 전 평균", "수업 전 SD", "수업 후 평균", "수업 후 SD", "수업 후 분포"] : ["번호", "문항", "n", "평균", "표준편차", "분포(원점수)"],
         d.items.map(it => d.dual
           ? [it.n, it.t, fmt(it.pre.mean), fmt(it.pre.sd), fmt(it.now.mean), fmt(it.now.sd), { node: distBar(it.now.dist), text: it.now.dist.join("/") }]
           : [it.n, { node: el("span", {}, it.t, it.reverse ? el("span", { class: "tag", text: "역채점" }) : null), text: it.t + (it.reverse ? " (역채점)" : "") }, it.now.n, fmt(it.now.mean), fmt(it.now.sd), { node: distBar(it.now.dist), text: it.now.dist.join("/") }]),
@@ -141,9 +141,9 @@ function secPrePost(R) {
   const rows = [...R.dual.items.map(i => [`${i.num}`, i.sub, i.n, `${fmt(i.m1)} (${fmt(i.sd1)})`, `${fmt(i.m2)} (${fmt(i.sd2)})`, fmt(i.diff), fmt(i.t), i.df, fmtP(i.p) + stars(i.p), fmt(i.dz)]),
     ["전체", "영역 평균", t.n, `${fmt(t.m1)} (${fmt(t.sd1)})`, `${fmt(t.m2)} (${fmt(t.sd2)})`, fmt(t.diff), fmt(t.t), t.df, fmtP(t.p) + stars(t.p), fmt(t.dz)]];
   return el("section", { class: "sec", id: "prepost" },
-    el("h2", { text: "영역Ⅰ 과학적 의사소통: 수업 전 vs 지금" }),
-    el("p", { class: "lead", text: "같은 학생이 '수업 전의 나'와 '지금의 나'에 답한 값을 대응표본 t검정으로 비교했어요. dz = 평균 차이 ÷ 차이의 표준편차." }),
-    tableBlock(["문항", "하위요소", "n", "수업 전 M(SD)", "지금 M(SD)", "차이", "t", "df", "p", "dz"], rows, { left: [1], sumRow: R.dual.items.length }),
+    el("h2", { text: "영역Ⅰ 과학적 의사소통: 수업 전 vs 수업 후" }),
+    el("p", { class: "lead", text: "같은 학생이 '수업 전의 나'와 '수업 후의 나'에 답한 값을 대응표본 t검정으로 비교했어요. dz = 평균 차이 ÷ 차이의 표준편차." }),
+    tableBlock(["문항", "하위요소", "n", "수업 전 M(SD)", "수업 후 M(SD)", "차이", "t", "df", "p", "dz"], rows, { left: [1], sumRow: R.dual.items.length }),
     gainChart(R.dual.items),
     el("p", { class: "note", text: "* p<.05, ** p<.01, *** p<.001. 회고식(수업이 끝난 뒤 수업 전을 떠올려 답함) 응답이라는 점을 보고서 한계에 함께 적어 주세요." }));
 }
@@ -181,9 +181,9 @@ function secGroups(R) {
     el("h3", { style: "font-size:15.5px;margin:6px 0", text: "AI와 문답하며 문제를 풀었는지에 따라" }),
     tableBlock(["영역", "푼 학생 n", "푼 학생 M(SD)", "안 푼 학생 n", "안 푼 학생 M(SD)", "차이", "t(Welch)", "p"],
       ids.map((id, i) => { const y = R.byAct.yes[i], n = R.byAct.no[i], t = R.byAct.tests[i]; return [DOMAINS[i].short + (DOMAINS[i].dual ? " (지금)" : ""), y.n, `${fmt(y.mean)} (${fmt(y.sd)})`, n.n, n.n ? `${fmt(n.mean)} (${fmt(n.sd)})` : "–", fmt(t.diff), fmt(t.t), fmtP(t.p) + stars(t.p)]; })),
-    el("p", { class: "note", text: `영역Ⅰ 향상(지금−수업 전): 푼 학생 ${fmt(R.byAct.gainI.yes.diff)}점(n=${R.byAct.gainI.yes.n}), 안 푼 학생 ${fmt(R.byAct.gainI.no.diff)}점(n=${R.byAct.gainI.no.n}). 영역Ⅲ은 푼 학생만 답해서 비교하지 않아요.` }),
+    el("p", { class: "note", text: `영역Ⅰ 향상(수업 후−수업 전): 푼 학생 ${fmt(R.byAct.gainI.yes.diff)}점(n=${R.byAct.gainI.yes.n}), 안 푼 학생 ${fmt(R.byAct.gainI.no.diff)}점(n=${R.byAct.gainI.no.n}). 영역Ⅲ은 푼 학생만 답해서 비교하지 않아요.` }),
     el("h3", { style: "font-size:15.5px;margin:14px 0 6px", text: "반별 영역 평균" }),
-    tableBlock(["반", "n", ...DOMAINS.map(d => d.id + (d.dual ? "(지금)" : "")), "Ⅰ 향상"], R.byClassDomain.map(c => [c.cls.replace("-", "학년 ") + "반", c.n, ...c.means.map(m => fmt(m)), fmt(c.gainI)])));
+    tableBlock(["반", "n", ...DOMAINS.map(d => d.id + (d.dual ? "(수업 후)" : "")), "Ⅰ 향상"], R.byClassDomain.map(c => [c.cls.replace("-", "학년 ") + "반", c.n, ...c.means.map(m => fmt(m)), fmt(c.gainI)])));
 }
 
 function secCuri(R) {
@@ -192,8 +192,8 @@ function secCuri(R) {
     el("h2", { text: "큐리 기록과 연결" }),
     el("p", { class: "lead", text: `학년·반·번호가 같은 큐리 개인 제출(가장 최근)과 짝지었어요. 응답 ${C.respondents}명 중 ${C.matched}명이 연결됐어요. 팀 제출은 번호가 없어서 연결되지 않아요.` }),
     tableBlock(["설문 지표", "큐리 지표", "n", "스피어만 ρ", "p"],
-      [...C.vars.map(v => ["영역Ⅰ 향상(지금−수업 전)", v.label, v.n, fmt(v.rho, 3), fmtP(v.p) + stars(v.p)]),
-       ...C.nowI.map(v => ["영역Ⅰ 지금 점수", v.label, v.n, fmt(v.rho, 3), fmtP(v.p) + stars(v.p)])], { left: [0, 1] }),
+      [...C.vars.map(v => ["영역Ⅰ 향상(수업 후−수업 전)", v.label, v.n, fmt(v.rho, 3), fmtP(v.p) + stars(v.p)]),
+       ...C.nowI.map(v => ["영역Ⅰ 수업 후 점수", v.label, v.n, fmt(v.rho, 3), fmtP(v.p) + stars(v.p)])], { left: [0, 1] }),
     el("p", { class: "note", text: "큐리 체크 판정은 격려 중심이라 너그럽게 매겨져요. 상관은 '함께 움직이는 경향'으로만 해석해 주세요." }));
 }
 
@@ -221,11 +221,11 @@ function secEssay(R) {
         if (saved.error) throw new Error(saved.error);
         for (const x of items) { const r = DATA.rows.find(z => z.id === x.id); if (r) { r.codes = x.codes; r.code_source = x.source; } }
       }
-      toast(usedRule ? `AI 연결이 안 돼서 ${usedRule}개는 단어 규칙으로 분류했어요. 확인해 주세요.` : "AI 분류를 마쳤어요. 내용을 보고 고쳐 주세요.");
+      toast(usedRule ? `AI 연결이 안 돼서 ${usedRule}개는 단어 규칙으로 분류했어요. 확인해 주세요.` : "AI 분류를 마쳤어요. 내용을 보고 수정해 주세요.");
       renderAll(); location.hash = "#essay";
     } catch (e) { status.textContent = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; aiBtn.disabled = false; }
   } });
-  const saveBtn = el("button", { class: "tbtn", type: "button", disabled: dirtyCodes.size === 0, text: `고친 분류 저장${dirtyCodes.size ? ` (${dirtyCodes.size})` : ""}`, onclick: async () => {
+  const saveBtn = el("button", { class: "tbtn", type: "button", disabled: dirtyCodes.size === 0, text: `수정한 분류 저장${dirtyCodes.size ? ` (${dirtyCodes.size})` : ""}`, onclick: async () => {
     saveBtn.disabled = true;
     try {
       const items = [...dirtyCodes.entries()].map(([id, codes]) => ({ id, codes, source: "teacher" }));
@@ -237,10 +237,10 @@ function secEssay(R) {
   } });
   return el("section", { class: "sec", id: "essay" },
     el("h2", { text: "서술형 31번: 무엇이 바뀌었나" }),
-    el("p", { class: "lead", text: `서술형에 답한 학생 ${R.essay.n}명 · 분류된 응답 ${R.essay.coded}개. 한 응답에 여러 범주를 고를 수 있어요. AI 분류는 초안이니, 체크를 고친 뒤 '고친 분류 저장'을 눌러 주세요.` }),
+    el("p", { class: "lead", text: `서술형에 답한 학생 ${R.essay.n}명 · 분류된 응답 ${R.essay.coded}개. 한 응답에 여러 범주를 고를 수 있어요. AI 분류는 초안이니, 체크를 수정한 뒤 '수정한 분류 저장'을 눌러 주세요.` }),
     tableBlock(["범주", "응답 수", "비율"], R.essay.freq.map(f => [f.code, f.n, R.essay.coded ? `${Math.round(f.n / R.essay.coded * 100)}%` : "–"])),
     el("div", { class: "tools" }, aiBtn, saveBtn, status),
-    el("details", { open: true }, el("summary", { style: "cursor:pointer;font-weight:700;margin:8px 0", text: `응답 보기·분류 고치기 (${rows.length})` }),
+    el("details", { open: true }, el("summary", { style: "cursor:pointer;font-weight:700;margin:8px 0", text: `응답 보기·분류 수정하기 (${rows.length})` }),
       rows.map(r => {
         const codes = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
         return el("div", { class: "essay-card" },
@@ -250,7 +250,7 @@ function secEssay(R) {
             const cur = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
             e.target.checked ? cur.add(c) : cur.delete(c);
             dirtyCodes.set(r.id, ESSAY_CODES.filter(x => cur.has(x)));
-            saveBtn.disabled = false; saveBtn.textContent = `고친 분류 저장 (${dirtyCodes.size})`;
+            saveBtn.disabled = false; saveBtn.textContent = `수정한 분류 저장 (${dirtyCodes.size})`;
           } }), c))));
       })),
     el("h3", { style: "font-size:15.5px;margin:14px 0 6px", text: "범주별 대표 사례 (최대 3개)" }),
@@ -264,7 +264,7 @@ function sentences(R) {
   const t = R.dual.total;
   if (t.n >= 2) {
     const up = t.diff > 0, sig = t.p < .05;
-    out.push(`영역Ⅰ(과학적 의사소통 능력) 전체 평균은 수업 전 M=${fmt(t.m1)}(SD=${fmt(t.sd1)})에서 지금 M=${fmt(t.m2)}(SD=${fmt(t.sd2)})로 ${up ? "높아졌으며" : "낮아졌으며"}, 이 차이는 통계적으로 ${sig ? "유의하였다" : "유의하지 않았다"}(t(${t.df})=${fmt(t.t)}, ${pTxt(t.p)}, dz=${fmt(t.dz)}).`);
+    out.push(`영역Ⅰ(과학적 의사소통 능력) 전체 평균은 수업 전 M=${fmt(t.m1)}(SD=${fmt(t.sd1)})에서 수업 후 M=${fmt(t.m2)}(SD=${fmt(t.sd2)})로 ${up ? "높아졌으며" : "낮아졌으며"}, 이 차이는 통계적으로 ${sig ? "유의하였다" : "유의하지 않았다"}(t(${t.df})=${fmt(t.t)}, ${pTxt(t.p)}, dz=${fmt(t.dz)}).`);
     const top = [...R.dual.items].filter(i => Number.isFinite(i.diff)).sort((a, b) => b.diff - a.diff).slice(0, 2);
     if (top.length === 2) out.push(`하위요소 중에서는 '${top[0].sub}'(${fmt(top[0].diff)}점, dz=${fmt(top[0].dz)})과 '${top[1].sub}'(${fmt(top[1].diff)}점, dz=${fmt(top[1].dz)})의 향상 폭이 가장 컸다.`);
     const low = [...R.dual.items].filter(i => Number.isFinite(i.diff)).sort((a, b) => a.diff - b.diff)[0];
@@ -281,27 +281,27 @@ function sentences(R) {
   if (cv && cv.n >= 3) out.push(`큐리 기록과 연결된 ${cv.n}명에서 영역Ⅰ 향상 정도와 큐리 단계별 체크 통과 향상의 스피어만 상관은 ρ=${fmt(cv.rho, 2)}(${pTxt(cv.p)})였다.`);
   if (R.essay.coded) {
     const f = [...R.essay.freq].filter(x => x.code !== "기타").sort((a, b) => b.n - a.n);
-    out.push(`서술형(31번) ${R.essay.coded}개 응답에서 AI의 질문을 받고 가장 많이 고친 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
+    out.push(`서술형(31번) ${R.essay.coded}개 응답에서 AI의 질문을 받고 가장 많이 수정한 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
   }
   return out;
 }
 
 function exportXlsx(R) {
   const allItems = DOMAINS.flatMap(d => d.items.map(it => ({ ...it, dual: !!d.dual })));
-  const head = ["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_지금`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), "31_①처음", "31_②질문", "31_③고친것", "31_분류"];
+  const head = ["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_수업후`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), "31_①처음", "31_②질문", "31_③수정한것", "31_분류"];
   const raw = [head, ...R.rows.map(r => [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오",
     ...allItems.flatMap(it => { const a = r.answers[it.n] ?? r.answers[String(it.n)]; return it.dual ? [a ? a.pre : "", a ? a.now : ""] : [a ?? "해당 없음"]; }),
     r.essay.first || "", r.essay.question || "", r.essay.revised || "", (r.codes || []).join(", ")])];
   const summ = [["영역", "구분", "n", "평균", "표준편차", "Cronbach α"]];
-  for (const d of R.domains) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([d.name, d.dual ? (w === "pre" ? "수업 전" : "지금") : "", d[w].n, +fmt(d[w].mean, 3), +fmt(d[w].sd, 3), Number.isFinite(d[w].alpha.alpha) ? +fmt(d[w].alpha.alpha, 3) : ""]);
+  for (const d of R.domains) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([d.name, d.dual ? (w === "pre" ? "수업 전" : "수업 후") : "", d[w].n, +fmt(d[w].mean, 3), +fmt(d[w].sd, 3), Number.isFinite(d[w].alpha.alpha) ? +fmt(d[w].alpha.alpha, 3) : ""]);
   summ.push([]); summ.push(["번호", "문항", "역채점", "구분", "n", "평균", "표준편차", "1", "2", "3", "4", "5"]);
-  for (const d of R.domains) for (const it of d.items) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([it.n, it.t, it.reverse ? "예" : "", d.dual ? (w === "pre" ? "수업 전" : "지금") : "", it[w].n, +fmt(it[w].mean, 3), +fmt(it[w].sd, 3), ...it[w].dist]);
+  for (const d of R.domains) for (const it of d.items) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([it.n, it.t, it.reverse ? "예" : "", d.dual ? (w === "pre" ? "수업 전" : "수업 후") : "", it[w].n, +fmt(it[w].mean, 3), +fmt(it[w].sd, 3), ...it[w].dist]);
   const tt = [["분석", "문항", "n", "평균1", "SD1", "평균2", "SD2", "차이", "t", "df", "p", "효과크기"]];
-  for (const i of R.dual.items) tt.push(["영역Ⅰ 수업 전 vs 지금(대응)", `${i.num}. ${i.sub}`, i.n, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), i.df, +i.p.toPrecision(4), +fmt(i.dz, 3)]);
-  const T = R.dual.total; tt.push(["영역Ⅰ 수업 전 vs 지금(대응)", "영역 평균", T.n, +fmt(T.m1, 3), +fmt(T.sd1, 3), +fmt(T.m2, 3), +fmt(T.sd2, 3), +fmt(T.diff, 3), +fmt(T.t, 3), T.df, +T.p.toPrecision(4), +fmt(T.dz, 3)]);
+  for (const i of R.dual.items) tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", `${i.num}. ${i.sub}`, i.n, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), i.df, +i.p.toPrecision(4), +fmt(i.dz, 3)]);
+  const T = R.dual.total; tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", "영역 평균", T.n, +fmt(T.m1, 3), +fmt(T.sd1, 3), +fmt(T.m2, 3), +fmt(T.sd2, 3), +fmt(T.diff, 3), +fmt(T.t, 3), T.df, +T.p.toPrecision(4), +fmt(T.dz, 3)]);
   if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: "영역Ⅵ 평균", pre: "" }]) tt.push([`영역Ⅵ 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
   for (const v of R.curi.vars) tt.push(["큐리 연결(스피어만)", `영역Ⅰ 향상 × ${v.label}`, v.n, "", "", "", "", "", "", "", Number.isFinite(v.p) ? +v.p.toPrecision(4) : "", Number.isFinite(v.rho) ? +fmt(v.rho, 3) : ""]);
-  const es = [["학년", "반", "번호", "①처음", "②질문", "③고친것", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
+  const es = [["학년", "반", "번호", "①처음", "②질문", "③수정한것", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
   const blob = makeXlsx([{ name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);
   const a = el("a", { href: URL.createObjectURL(blob), download: `사후설문_분석_${DATA.at.replace(/[ :]/g, "-")}.xlsx` });
   document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

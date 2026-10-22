@@ -28,8 +28,8 @@ h2{font-size:19px;line-height:1.4;margin:6px 0 4px}
 .check:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}
 fieldset.q{border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:14px 14px 16px;margin:12px 0}
 fieldset.q.missing{border-color:var(--warn);background:var(--warn-soft)}
-fieldset.q legend{float:left;width:100%;padding:0;font-size:16px;line-height:1.6;font-weight:600;margin-bottom:10px}
-fieldset.q legend .num{color:var(--primary);font-weight:800;margin-right:4px}
+fieldset.q .qtitle{font-size:16px;line-height:1.6;font-weight:600;margin:2px 0 8px}
+
 .sub-label{clear:both;font-size:13.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px}
 .scale{clear:both;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 .opt{position:relative;display:block}
@@ -57,3 +57,37 @@ textarea{width:100%;min-height:92px;border:1.5px solid var(--line);border-radius
 .small{font-size:13px;color:var(--ink-soft);line-height:1.6}
 .link-btn{background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;font-size:14px;padding:8px}
 @media (max-width:420px){ .opt span small{font-size:10.5px} .opt span{min-height:62px} }
+
+/* ── 알록달록 테마 ── */
+.progress>div{background:linear-gradient(90deg,#F26B5B,#F5A33F,#F2C94C,#5CC98A,#3E8EF7,#8E6BE8)}
+.dom-head{display:flex;gap:14px;align-items:center;border:2px solid color-mix(in srgb,var(--acc,#5847B8) 30%,transparent)}
+.dom-head h2{color:color-mix(in srgb,var(--acc,#22243A) 75%,#1b1d2e)}
+.dom-ico{font-size:34px;line-height:1;width:56px;height:56px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+fieldset.q{border-top:5px solid var(--acc,#5847B8)}
+fieldset.q .qtitle .num{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:99px;background:var(--acc,#5847B8);color:white;font-size:14px;margin-right:6px;padding:0 6px;vertical-align:1px}
+.when{clear:both;border-radius:14px;padding:4px 10px 10px;margin-top:8px}
+.when-pre{background:#F1F3F8;border:1.5px dashed #B9C0D2}
+.when-now{background:#EAFBF0;border:1.5px solid #7DD6A0}
+.when .sub-label{display:flex;align-items:center;gap:6px;font-size:14.5px;color:#2E3348;margin:8px 0}
+.when-ico{font-size:20px}
+.when-tag{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:99px;padding:2px 8px}
+.when-pre .when-tag{background:#DDE2EE;color:#4A5370}
+.when-now .when-tag{background:#2E9E5B;color:white}
+.opt span{position:relative;border-width:2px}
+.opt span i{font-style:normal;font-size:20px;line-height:1.1}
+.opt span.s1{border-color:#F7B3AA}.opt span.s1 b{color:#D9452F}
+.opt span.s2{border-color:#F9CFA0}.opt span.s2 b{color:#D97A12}
+.opt span.s3{border-color:#F3DE95}.opt span.s3 b{color:#A88300}
+.opt span.s4{border-color:#A9E2BD}.opt span.s4 b{color:#22924F}
+.opt span.s5{border-color:#A9C9F7}.opt span.s5 b{color:#2368D6}
+.opt input:checked+span.s1{background:#EF5B48;border-color:#EF5B48}
+.opt input:checked+span.s2{background:#F08A1F;border-color:#F08A1F}
+.opt input:checked+span.s3{background:#E3B520;border-color:#E3B520}
+.opt input:checked+span.s4{background:#2FA862;border-color:#2FA862}
+.opt input:checked+span.s5{background:#2F74E6;border-color:#2F74E6}
+.opt input:checked+span b,.opt input:checked+span small{color:white}
+.opt input:checked+span{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.15)}
+.when-pre .opt span{background:#FAFBFD}
+.btn.primary{background:linear-gradient(135deg,#6D5BD0,#3E8EF7);border:none}
+.card h2{font-size:18px}
+@media (max-width:420px){ .opt span i{font-size:17px} .dom-ico{width:46px;height:46px;font-size:28px} }

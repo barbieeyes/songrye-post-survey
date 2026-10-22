@@ -1,4 +1,4 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS } from "./items.js";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, SCALE_FACE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS } from "./items.js";
 
 const DRAFT_KEY = "post-survey-draft-v1";
 const DONE_KEY = "post-survey-done-v1";
@@ -40,7 +40,8 @@ function setProgress() {
   const st = steps();
   const i = Math.min(S.step, st.length - 1);
   $bar.style.width = `${Math.round((i / (st.length - 1)) * 100)}%`;
-  $barLabel.textContent = i === 0 ? "시작" : `${i} / ${st.length - 1}`;
+  const d = domains().find(x => x.id === st[i]);
+  $barLabel.textContent = i === 0 ? "시작" : st[i] === "essay" ? `✏️ 마지막 단계 · ${i} / ${st.length - 1}` : `${d ? d.icon + " " : ""}${i} / ${st.length - 1}`;
 }
 
 function likert(name, value, onPick, labelId) {
@@ -50,7 +51,7 @@ function likert(name, value, onPick, labelId) {
       const id = `${name}-${v}`;
       return el("label", { class: "opt", for: id },
         el("input", { type: "radio", id, name, value: String(v), checked: value === v, onchange: () => onPick(v) }),
-        el("span", {}, el("b", { text: String(v) }), el("small", { text: lab })));
+        el("span", { class: `s${v}` }, el("i", { "aria-hidden": "true", text: SCALE_FACE[i] }), el("b", { text: String(v) }), el("small", { text: lab })));
     }));
 }
 
@@ -66,12 +67,12 @@ function renderStart() {
     el("h1", { text: "AI 기반 오류 분석 학습이 중학생의 과학적 의사소통 능력에 미치는 영향 (사후 검사 설문지)" }),
     el("div", { class: "card intro", text: INTRO }),
     el("div", { class: "card" },
-      el("h2", { text: "나의 정보" }),
+      el("h2", {}, el("span", { "aria-hidden": "true", text: "🙋 " }), "나의 정보"),
       el("p", { class: "small", text: "이름은 받지 않아요. 학년·반·번호만 골라 주세요." }),
       el("div", { class: "row" }, sel("grade", "학년", 3, S.grade, "grade"), sel("cls", "반", 15, S.cls, "cls"), sel("num", "번호", 35, S.num, "num")),
       el("div", { id: "startErr" })),
     el("div", { class: "card" },
-      el("h2", { text: "이번 학기에 참여한 활동" }),
+      el("h2", {}, el("span", { "aria-hidden": "true", text: "🎒 " }), "이번 학기에 참여한 활동"),
       el("p", { class: "small", text: "해당하는 것을 모두 골라 주세요." }),
       chk("actAi", ACT_AI, "actAi"), chk("actCuri", ACT_CURI, "actCuri"))
   ];
@@ -79,19 +80,20 @@ function renderStart() {
 
 function itemBlock(it, dual) {
   const legendId = `lg-${it.n}`;
-  const fs = el("fieldset", { class: "q", id: `q-${it.n}` },
-    el("legend", { id: legendId }, el("span", { class: "num", text: `${it.n}.` }), it.t));
+  const fs = el("fieldset", { class: "q", id: `q-${it.n}`, "aria-labelledby": legendId },
+    el("div", { class: "qtitle", id: legendId }, el("span", { class: "num", text: `${it.n}` }), it.t));
   if (dual) {
     const cur = S.ans[it.n] || {};
-    for (const [k, lab] of [["pre", "수업 전의 나"], ["now", "지금의 나"]]) {
+    for (const [k, lab] of [["pre", "수업 전의 나"], ["now", "수업 후의 나"]]) {
       const subId = `sl-${it.n}-${k}`;
-      fs.append(el("div", { class: "sub-label", id: subId, text: lab }),
-        likert(`a${it.n}${k}`, cur[k], v => { S.ans[it.n] = { ...(S.ans[it.n] || {}), [k]: v }; save(); clearMiss(fs, it, true); }, `${legendId} ${subId}`));
+      fs.append(el("div", { class: `when when-${k}` },
+        el("div", { class: "sub-label", id: subId }, el("span", { class: "when-ico", "aria-hidden": "true", text: k === "pre" ? "🕰️" : "🌱" }), lab, el("span", { class: "when-tag", text: k === "pre" ? "BEFORE" : "AFTER" })),
+        likert(`a${it.n}${k}`, cur[k], v => { S.ans[it.n] = { ...(S.ans[it.n] || {}), [k]: v }; save(); clearMiss(fs, it, true); }, `${legendId} ${subId}`)));
     }
   } else {
     fs.append(likert(`a${it.n}`, S.ans[it.n], v => { S.ans[it.n] = v; save(); clearMiss(fs, it, false); }, legendId));
   }
-  fs.append(el("div", { class: "miss-msg", role: "alert", text: dual ? "수업 전과 지금을 모두 골라 주세요." : "이 문항을 골라 주세요." }));
+  fs.append(el("div", { class: "miss-msg", role: "alert", text: dual ? "수업 전과 수업 후를 모두 골라 주세요." : "이 문항을 골라 주세요." }));
   return fs;
 }
 function answered(it, dual) {
@@ -102,15 +104,16 @@ function clearMiss(fs, it, dual) { if (answered(it, dual)) fs.classList.remove("
 
 function renderDomain(d) {
   return [
-    el("div", { class: "dom-head", style: `background:${d.color}` }, el("h2", { text: d.name }), d.guide ? el("div", { class: "guide", text: d.guide }) : null),
-    el("p", { class: "small", text: "1 전혀 그렇지 않다 · 2 그렇지 않다 · 3 보통이다 · 4 그렇다 · 5 매우 그렇다" }),
-    d.items.map(it => itemBlock(it, !!d.dual))
+    el("div", { class: "dom-head", style: `background:${d.color};--acc:${d.accent}` },
+      el("div", { class: "dom-ico", "aria-hidden": "true", text: d.icon }),
+      el("div", {}, el("h2", { text: d.name }), d.guide ? el("div", { class: "guide", text: d.guide }) : null)),
+    d.items.map(it => { const b = itemBlock(it, !!d.dual); b.style.setProperty("--acc", d.accent); return b; })
   ];
 }
 
 function renderEssay() {
   return [
-    el("div", { class: "dom-head", style: "background:#FCE6CF" }, el("h2", { text: "서술형" })),
+    el("div", { class: "dom-head", style: "background:#FCE6CF;--acc:#D9692A" }, el("div", { class: "dom-ico", "aria-hidden": "true", text: "✏️" }), el("div", {}, el("h2", { text: "서술형" }), el("div", { class: "guide", text: "마지막이에요! 내 경험을 떠올려 적어 주세요." }))),
     el("div", { class: "card" },
       el("p", { class: "intro", style: "margin:0" }, el("b", { style: "color:var(--primary)", text: `${ESSAY.n}. ` }), ESSAY.t),
       ESSAY.parts.map(p => [

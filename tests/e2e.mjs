@@ -36,7 +36,7 @@ async function student(vp, actAi) {
   await pg.getByLabel("큐리로 탐구 보고서 쓰기").check();
   await pg.getByRole("button", { name: "시작하기" }).click(); await sleep(200);
   t(await pg.getByRole("heading", { name: /영역Ⅰ/ }).isVisible(), "영역Ⅰ 화면");
-  t((await pg.getByText("수업 전의 나", { exact: true }).count()) === 8 && (await pg.getByText("지금의 나", { exact: true }).count()) === 8, "영역Ⅰ 8문항 × 수업 전/지금");
+  t((await pg.locator(".when-pre", { hasText: "수업 전의 나" }).count()) === 8 && (await pg.locator(".when-now", { hasText: "수업 후의 나" }).count()) === 8, "영역Ⅰ 8문항 × 수업 전/수업 후 (색으로 구분)");
   await pg.getByRole("button", { name: "다음" }).click(); await sleep(400);
   t(await pg.locator("#q-1.missing").count() === 1 && await pg.getByRole("heading", { name: /영역Ⅰ/ }).isVisible(), "미응답이면 못 넘어가고 표시됨");
   t(await pg.evaluate(() => document.activeElement && document.activeElement.name === "a1pre"), "첫 미응답 문항으로 이동(포커스)");
@@ -62,7 +62,7 @@ async function student(vp, actAi) {
   t(!(await pg.getByText("역채점").count()) && !(await pg.getByText("역문항").count()), "학생 화면에 역문항 표시 없음");
   await pg.getByLabel("① 처음에 쓴 것").fill("힘이 세져서 빨라진다");
   await pg.getByLabel("② 받은 질문").fill("그 힘은 어떤 에너지야?");
-  await pg.getByLabel("③ 고친 것").fill("위치에너지가 운동에너지로 바뀌어서 빨라진다");
+  await pg.getByLabel("③ 수정한 것").fill("위치에너지가 운동에너지로 바뀌어서 빨라진다");
   const ov = await pg.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1); t(!ov, "가로 스크롤 없음");
   failNext = 2; // 첫 제출은 네트워크 실패 → 안내 후 다시 제출
   await pg.getByRole("button", { name: "제출하기" }).click(); await sleep(1800);
@@ -128,7 +128,7 @@ await student({ width: 1280, height: 800 }, true);
   t(saved.length > before && saved.every(s => s.source === "ai" || s.source === "teacher"), `AI 분류 결과 저장 (${saved.length - before}개)`);
   const card = pg.locator(".essay-card").first();
   await card.getByLabel("기타").check(); await sleep(100);
-  await pg.getByRole("button", { name: /고친 분류 저장/ }).click(); await sleep(500);
+  await pg.getByRole("button", { name: /수정한 분류 저장/ }).click(); await sleep(500);
   t(saved.some(s => s.source === "teacher" && s.codes.includes("기타")), "교사가 고친 분류 저장");
   // 보고서 문장·표 복사·엑셀
   const sent = await pg.locator(".sentence").first().textContent();
