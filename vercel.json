@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    { "source": "/teacher", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
+  ]
+}

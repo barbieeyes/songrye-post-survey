@@ -1,0 +1,7 @@
+{
+  "name": "songrye-post-survey",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "송례중 AI 기반 오류 분석 학습 연구 — 사후 설문 수집·분석 앱 (빌드 없음, 정적 파일 + api/classify)"
+}
