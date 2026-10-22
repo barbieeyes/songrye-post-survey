@@ -85,3 +85,16 @@ export const REVERSE = ALL_ITEMS.filter(i => i.reverse).map(i => i.n); // [12, 2
 export function visibleDomains(actAi) {
   return DOMAINS.map(d => ({ ...d, items: d.items.filter(it => actAi || !(d.aiOnly || it.aiOnly)) })).filter(d => d.items.length > 0);
 }
+
+// 서술형 문항 설정(교사용 화면에서 수정) — 못 불러오면 기본 문구 사용
+export const DEFAULT_ESSAY_CFG = { question: ESSAY.t, labels: ESSAY.parts.map(p => p.label) };
+export async function loadEssayConfig() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/post_survey_config?id=eq.1&select=essay,updated_at`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+    if (!res.ok) throw new Error(String(res.status));
+    const rows = await res.json();
+    const e = rows && rows[0] && rows[0].essay;
+    if (!e || !e.question || !Array.isArray(e.labels) || e.labels.length !== 3) throw new Error("bad");
+    return { question: String(e.question), labels: e.labels.map(String), updated_at: rows[0].updated_at };
+  } catch (err) { return { ...DEFAULT_ESSAY_CFG, fallback: true }; }
+}

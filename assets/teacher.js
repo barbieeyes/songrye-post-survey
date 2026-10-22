@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE } from "./items.js";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig } from "./items.js";
 import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js";
 import { fmt, fmtP, stars } from "./stats.js";
 import { makeXlsx } from "./xlsx.js";
@@ -7,7 +7,7 @@ import { autoCode } from "./autocode.js";
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");
 const DIST_COLORS = ["#D9553F", "#EFA35C", "#C5C8D6", "#7AAEDE", "#2F63B8"];
-let PW = null, DATA = null, PRE = null, PRE_NAME = "", RES = null;
+let PW = null, DATA = null, PRE = null, PRE_NAME = "", RES = null, CFG = null;
 const dirtyCodes = new Map();
 
 function el(tag, attrs = {}, ...kids) {
@@ -46,7 +46,7 @@ async function load(pw) {
   try {
     const d = await rpc("post_survey_rows", { pw });
     if (d && d.error) { ss.del(PW_KEY); return renderLogin(d.error === "locked" ? "비밀번호를 여러 번 틀려서 잠시 잠겼어요. 10분 뒤에 다시 해 주세요." : "비밀번호가 맞지 않아요."); }
-    PW = pw; ss.set(PW_KEY, pw); DATA = d; dirtyCodes.clear(); renderAll();
+    PW = pw; ss.set(PW_KEY, pw); DATA = d; CFG = await loadEssayConfig(); dirtyCodes.clear(); renderAll();
   } catch (e) { console.error("load-fail", e); renderLogin("불러오지 못했어요. 인터넷 연결을 확인해 주세요."); }
 }
 
@@ -236,8 +236,31 @@ function secEssay(R) {
       dirtyCodes.clear(); toast("분류를 저장했어요."); renderAll(); location.hash = "#essay";
     } catch (e) { toast("저장하지 못했어요."); saveBtn.disabled = false; }
   } });
+  const L = (CFG && CFG.labels) || ["① 처음에 쓴 것", "② 받은 질문", "③ 수정한 것"];
+  const qBox = el("textarea", { id: "cfgQ", "aria-label": "서술형 질문", maxlength: "600", style: "min-height:90px" }, (CFG && CFG.question) || ESSAY.t);
+  const lBoxes = L.map((l, i) => el("input", { type: "text", maxlength: "60", value: l, "aria-label": `답 칸 ${i + 1} 제목`, style: "flex:1 1 180px;height:42px;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px" }));
+  const cfgMsg = el("span", { class: "small" });
+  const cfgSave = el("button", { class: "tbtn solid", type: "button", text: "서술형 문항 저장", onclick: async () => {
+    const essay = { question: qBox.value.trim(), labels: lBoxes.map(b => b.value.trim()) };
+    if (essay.question.length < 5) { cfgMsg.textContent = "질문을 5자 이상 써 주세요."; return; }
+    if (!essay.labels.some(Boolean)) { cfgMsg.textContent = "답 칸 제목을 하나 이상 써 주세요."; return; }
+    cfgSave.disabled = true; cfgMsg.textContent = "저장하는 중…";
+    try {
+      const r = await rpc("post_survey_set_config", { pw: PW, essay });
+      if (r.error) throw new Error(r.error);
+      CFG = { ...essay }; cfgMsg.textContent = "저장했어요. 학생 화면에 바로 반영돼요."; toast("서술형 문항을 저장했어요.");
+    } catch (e) { cfgMsg.textContent = "저장하지 못했어요. 다시 눌러 주세요."; }
+    cfgSave.disabled = false;
+  } });
+  const editor = el("details", { class: "card", style: "margin:8px 0 14px;padding:14px" },
+    el("summary", { style: "cursor:pointer;font-weight:800", text: "✏️ 학생에게 보이는 서술형 문항 수정하기" }),
+    el("p", { class: "note", text: "저장하면 다시 배포하지 않아도 학생 화면에 바로 반영돼요. 이미 낸 응답은 그대로 남고, 응답마다 그때의 질문이 함께 저장돼요. 답 칸 제목을 비우면 그 칸은 학생 화면에서 숨겨져요." }),
+    el("label", { class: "essay-label", for: "cfgQ", text: "질문" }), qBox,
+    el("div", { class: "essay-label", text: "답 칸 제목 (3개)" }), el("div", { style: "display:flex;gap:8px;flex-wrap:wrap" }, lBoxes),
+    el("div", { class: "tools", style: "margin-top:10px" }, cfgSave, cfgMsg));
   return el("section", { class: "sec", id: "essay" },
     el("h2", { text: "서술형 31번: 무엇이 바뀌었나" }),
+    editor,
     el("p", { class: "lead", text: `서술형에 답한 학생 ${R.essay.n}명 · 분류된 응답 ${R.essay.coded}개. 한 응답에 여러 범주를 고를 수 있어요. AI 분류는 초안이니, 체크를 수정한 뒤 '수정한 분류 저장'을 눌러 주세요.` }),
     tableBlock(["범주", "응답 수", "비율"], R.essay.freq.map(f => [f.code, f.n, R.essay.coded ? `${Math.round(f.n / R.essay.coded * 100)}%` : "–"])),
     el("div", { class: "tools" }, aiBtn, saveBtn, status),
@@ -246,7 +269,8 @@ function secEssay(R) {
         const codes = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
         return el("div", { class: "essay-card" },
           el("div", { class: "meta", text: `${r.grade}-${r.cls} ${r.num}번 · ${r.at}${r.code_source ? ` · ${r.code_source === "teacher" ? "교사 확인" : r.code_source === "ai" ? "AI 분류" : "단어 규칙 분류"}` : ""}` }),
-          el("p", {}, el("b", { text: "① " }), r.essay.first || "—"), el("p", {}, el("b", { text: "② " }), r.essay.question || "—"), el("p", {}, el("b", { text: "③ " }), r.essay.revised || "—"),
+          r.essay.prompt && r.essay.prompt !== ((CFG && CFG.question) || "") ? el("p", { class: "note", text: `당시 질문: ${r.essay.prompt}` }) : null,
+          el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[0]) || "①"}: ` }), r.essay.first || "—"), el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[1]) || "②"}: ` }), r.essay.question || "—"), el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[2]) || "③"}: ` }), r.essay.revised || "—"),
           el("div", { class: "codes", role: "group", "aria-label": "분류" }, ESSAY_CODES.map(c => el("label", {}, el("input", { type: "checkbox", checked: codes.has(c), onchange: e => {
             const cur = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
             e.target.checked ? cur.add(c) : cur.delete(c);
@@ -306,7 +330,7 @@ function exportXlsx(R) {
   const T = R.dual.total; tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", "영역 평균", T.n, +fmt(T.m1, 3), +fmt(T.sd1, 3), +fmt(T.m2, 3), +fmt(T.sd2, 3), +fmt(T.diff, 3), +fmt(T.t, 3), T.df, +T.p.toPrecision(4), +fmt(T.dz, 3)]);
   if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: "영역Ⅵ 평균", pre: "" }]) tt.push([`영역Ⅵ 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
   for (const v of R.curi.vars) tt.push(["큐리 연결(스피어만)", `영역Ⅰ 향상 × ${v.label}`, v.n, "", "", "", "", "", "", "", Number.isFinite(v.p) ? +v.p.toPrecision(4) : "", Number.isFinite(v.rho) ? +fmt(v.rho, 3) : ""]);
-  const es = [["학년", "반", "번호", "①처음", "②질문", "③수정한것", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
+  const es = [["학년", "반", "번호", "당시 질문", "답1", "답2", "답3", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.prompt || ESSAY.t, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
   const blob = makeXlsx([{ name: "학생별 점수", rows: per }, { name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);
   const a = el("a", { href: URL.createObjectURL(blob), download: `사후설문_분석_${DATA.at.replace(/[ :]/g, "-")}.xlsx` });
   document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

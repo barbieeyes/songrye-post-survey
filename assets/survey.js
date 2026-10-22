@@ -1,4 +1,5 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, SCALE_FACE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS } from "./items.js";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, SCALE_FACE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js";
+let ESSAY_CFG = DEFAULT_ESSAY_CFG;
 
 const DRAFT_KEY = "post-survey-draft-v1";
 const DONE_KEY = "post-survey-done-v1";
@@ -115,11 +116,11 @@ function renderEssay() {
   return [
     el("div", { class: "dom-head", style: "background:#FCE6CF;--acc:#D9692A" }, el("div", { class: "dom-ico", "aria-hidden": "true", text: "✏️" }), el("div", {}, el("h2", { text: "서술형" }), el("div", { class: "guide", text: "마지막이에요! 내 경험을 떠올려 적어 주세요." }))),
     el("div", { class: "card" },
-      el("p", { class: "intro", style: "margin:0" }, el("b", { style: "color:var(--primary)", text: `${ESSAY.n}. ` }), ESSAY.t),
-      ESSAY.parts.map(p => [
-        el("label", { class: "essay-label", for: `es-${p.key}`, text: p.label }),
+      el("p", { class: "intro", style: "margin:0;white-space:pre-line" }, el("b", { style: "color:var(--primary)", text: `${ESSAY.n}. ` }), ESSAY_CFG.question),
+      ESSAY.parts.map((p, i) => ESSAY_CFG.labels[i] ? [
+        el("label", { class: "essay-label", for: `es-${p.key}`, text: ESSAY_CFG.labels[i] }),
         el("textarea", { id: `es-${p.key}`, maxlength: "1500", oninput: e => { S.essay[p.key] = e.target.value; save(); } }, S.essay[p.key] || "")
-      ])),
+      ] : null)),
     el("div", { id: "submitMsg" })
   ];
 }
@@ -190,7 +191,7 @@ function buildPayload() {
   return {
     grade: Number(S.grade), cls: Number(S.cls), num: Number(S.num),
     act_ai: !!S.actAi, act_curi: !!S.actCuri, answers,
-    essay: { first: trim(S.essay.first), question: trim(S.essay.question), revised: trim(S.essay.revised) },
+    essay: { first: trim(S.essay.first), question: trim(S.essay.question), revised: trim(S.essay.revised), prompt: ESSAY_CFG.question.slice(0, 600), labels: ESSAY_CFG.labels },
     app_version: APP_VERSION
   };
 }
@@ -237,3 +238,4 @@ $next.addEventListener("click", () => {
 $prev.addEventListener("click", () => { if (S.step > 0) { S.step -= 1; save(); render(); } });
 
 render();
+loadEssayConfig().then(c => { ESSAY_CFG = c; if (steps()[S.step] === "essay" && !store.get(DONE_KEY)) render(); });

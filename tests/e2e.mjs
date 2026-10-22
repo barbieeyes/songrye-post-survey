@@ -18,14 +18,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); let ok = 0, bad = 0;
 const t = (c, m) => { c ? ok++ : bad++; console.log(c ? "✅" : "❌", m); };
 const near = (a, b, tol = 0.011) => Math.abs(Number(a) - Number(b)) <= tol;
 const block = route => route.fulfill({ status: 200, body: "" }); // 외부 글꼴 차단
+let CFG = { question: "기본 서술형 질문입니다", labels: ["① 처음에 쓴 것", "② 받은 질문", "③ 수정한 것"] };
+const cfgRoute = ctx => ctx.route(/rest\/v1\/post_survey_config/, r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ essay: CFG, updated_at: "2026-10-22T05:00:00Z" }]) }));
 
 // ── 학생 화면 ──
 async function student(vp, actAi) {
   const ctx = await b.newContext({ viewport: vp, hasTouch: vp.width < 500 });
-  await ctx.route(/jsdelivr/, block);
+  await ctx.route(/jsdelivr/, block); await cfgRoute(ctx);
   const posted = [];
   let failNext = 0;
-  await ctx.route(/supabase\.co\/rest\/v1\/post_survey/, async r => { if (failNext > 0) { failNext--; return r.fulfill({ status: 500, body: "x" }); } posted.push(JSON.parse(r.request().postData())); await r.fulfill({ status: 201, body: "" }); });
+  await ctx.route(/supabase\.co\/rest\/v1\/post_survey($|\?)/, async r => { if (failNext > 0) { failNext--; return r.fulfill({ status: 500, body: "x" }); } posted.push(JSON.parse(r.request().postData())); await r.fulfill({ status: 201, body: "" }); });
   const pg = await ctx.newPage(); pg.on("pageerror", e => t(false, "pageerror " + e.message));
   await pg.goto("http://localhost:4300/"); await sleep(300);
   t(await pg.getByText("사후 검사입니다").isVisible(), `${vp.width}: 안내문 보임`);
@@ -73,7 +75,7 @@ async function student(vp, actAi) {
   t(p.grade === 3 && p.cls === 2 && p.num === 14 && p.act_curi === true && p.act_ai === actAi, "학년·반·번호·활동 저장");
   t(p.answers["1"].pre === 2 && p.answers["1"].now === 4 && p.answers["8"].now === 5, "영역Ⅰ 수업 전/지금 값 정확");
   t(actAi ? p.answers["13"] !== null && p.answers["21"] !== null : p.answers["13"] === null && p.answers["15"] === null && p.answers["21"] === null, "해당 없음 문항은 null");
-  t(Object.keys(p.answers).length === 30 && p.essay.revised.includes("운동에너지"), "30문항 + 서술형 저장");
+  t(Object.keys(p.answers).length === 30 && p.essay.revised.includes("운동에너지") && p.essay.prompt === CFG.question, "30문항 + 서술형(당시 질문 포함) 저장");
   t(!JSON.stringify(p).toLowerCase().includes("snorkl"), "데이터에 Snorkl 단어 없음");
   t(await pg.getByText("제출했어요").isVisible(), "완료 화면");
   await pg.getByRole("button", { name: "제출했어요" }).count();
@@ -94,6 +96,9 @@ await student({ width: 1280, height: 800 }, true);
   const saved = [];
   await ctx.route(/rpc\/post_survey_rows/, async r => { const { pw } = JSON.parse(r.request().postData()); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(pw === "21442144" ? FAKE : { error: "bad" }) }); });
   await ctx.route(/rpc\/post_survey_save_codes/, async r => { const body = JSON.parse(r.request().postData()); saved.push(...body.items); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: body.items.length }) }); });
+  await cfgRoute(ctx);
+  let cfgSaved = null;
+  await ctx.route(/rpc\/post_survey_set_config/, async r => { cfgSaved = JSON.parse(r.request().postData()).essay; CFG = cfgSaved; await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) }); });
   await ctx.route(/\/api\/classify/, async r => { const { items } = JSON.parse(r.request().postData()); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: items.map(i => ({ id: i.id, codes: ["원리·이유", "용어·단위"] })) }) }); });
   const pg = await ctx.newPage(); pg.on("pageerror", e => t(false, "pageerror " + e.message));
   await pg.goto("http://localhost:4300/teacher"); await sleep(300);
@@ -130,6 +135,14 @@ await student({ width: 1280, height: 800 }, true);
   await card.getByLabel("기타").check(); await sleep(100);
   await pg.getByRole("button", { name: /수정한 분류 저장/ }).click(); await sleep(500);
   t(saved.some(s => s.source === "teacher" && s.codes.includes("기타")), "교사가 고친 분류 저장");
+  // 서술형 문항 수정 → 학생 화면 반영
+  await pg.getByText("학생에게 보이는 서술형 문항 수정하기").click();
+  await pg.getByLabel("서술형 질문").fill("AI의 질문으로 생각이 바뀐 순간을 적어 주세요.");
+  await pg.getByLabel("답 칸 3 제목").fill("");
+  await pg.getByRole("button", { name: "서술형 문항 저장" }).click(); await sleep(300);
+  t(cfgSaved && cfgSaved.question.includes("생각이 바뀐 순간") && cfgSaved.labels[2] === "", "교사: 서술형 문항 수정 저장");
+  { const sp = await ctx.newPage(); await sp.goto("http://localhost:4300/"); await sp.evaluate(() => localStorage.setItem("post-survey-draft-v1", JSON.stringify({ step: 6, grade: "3", cls: "1", num: "1", actAi: false, actCuri: true, ans: {}, essay: { first: "", question: "", revised: "" } }))); await sp.reload(); await sleep(500);
+    t(await sp.getByText("생각이 바뀐 순간").isVisible() && (await sp.locator("textarea").count()) === 2, "학생 화면에 수정한 질문 반영, 빈 칸은 숨김"); await sp.close(); }
   // 보고서 문장·표 복사·엑셀
   const sent = await pg.locator(".sentence").first().textContent();
   t(sent.includes(`t(${EXP.I_df})=`) && sent.includes("유의하였다"), "보고서 문장: 계산값으로 채움");
