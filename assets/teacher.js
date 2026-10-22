@@ -90,8 +90,8 @@ function renderAll() {
   const rows = (DATA.rows || []).map(r => ({ ...r, codes: dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : r.codes }));
   RES = analyze(rows, DATA.curi || [], PRE);
   const R = RES;
-  const nav = [["status", "응답 현황"], ["domains", "영역별 결과"], ["prepost", "수업 전·후"], ["pre", "사전 설문 비교"], ["groups", "집단 비교"], ["curi", "큐리 기록 연결"], ["essay", "서술형"], ["report", "보고서 문장·내보내기"]];
-  const sections = [secStatus(R), secDomains(R), secPrePost(R), secPre(R), secGroups(R), secCuri(R), secEssay(R), secReport(R)];
+  const nav = [["status", "응답 현황"], ["domains", "영역별 결과"], ["prepost", "수업 전·후"], ["pre", "사전 설문 비교"], ["groups", "집단 비교"], ["curi", "큐리 기록 연결"], ["essay", "서술형"], ["report", "보고서 문장·내보내기"], ["manage", "응답 관리"]];
+  const sections = [secStatus(R), secDomains(R), secPrePost(R), secPre(R), secGroups(R), secCuri(R), secEssay(R), secReport(R), manageBox()];
   $app.replaceChildren(
     el("div", { class: "thead" },
       el("div", {}, el("h1", { text: "📊 사후 설문 분석" }), el("div", { class: "small", text: `${DATA.at} 기준 · 같은 학년·반·번호는 가장 최근 응답만 분석` })),
@@ -102,6 +102,33 @@ function renderAll() {
     el("nav", { class: "tnav", "aria-label": "분석 메뉴" }, nav.map(([id, t]) => el("a", { href: `#${id}`, text: t }))),
     ...(R.N === 0 ? [el("div", { class: "alert ok", text: "아직 응답이 없어요. 학생들이 제출하면 여기에 바로 나타나요." })] : []),
     ...sections);
+}
+
+function manageBox() {
+  const all = [...(DATA.rows || [])].sort((a, b) => b.id - a.id);
+  const sel = new Set();
+  const msg = el("span", { class: "small" });
+  const delBtn = el("button", { class: "tbtn", type: "button", disabled: true, style: "color:#B4231B", text: "선택한 응답 삭제", onclick: async () => {
+    if (!sel.size) return;
+    if (!window.confirm(`선택한 응답 ${sel.size}건을 삭제할까요? 분석에서 빠지고, 아래 '삭제한 응답'에서 되살릴 수 있어요.`)) return;
+    delBtn.disabled = true; msg.textContent = "삭제하는 중…";
+    try { const r = await rpc("post_survey_set_deleted", { pw: PW, ids: [...sel], deleted: true }); if (r.error) throw new Error(r.error); toast(`${r.updated}건을 삭제했어요.`); await load(PW); location.hash = "#manage"; }
+    catch (e) { msg.textContent = "삭제하지 못했어요. 다시 눌러 주세요."; delBtn.disabled = false; }
+  } });
+  const restore = async id => { try { const r = await rpc("post_survey_set_deleted", { pw: PW, ids: [id], deleted: false }); if (r.error) throw new Error(r.error); toast("응답을 되살렸어요."); await load(PW); location.hash = "#manage"; } catch (e) { toast("되살리지 못했어요."); } };
+  const rows = all.map(r => {
+    const cb = el("input", { type: "checkbox", "aria-label": `${r.grade}학년 ${r.cls}반 ${r.num}번 ${r.at} 응답 선택`, onchange: e => { e.target.checked ? sel.add(r.id) : sel.delete(r.id); delBtn.disabled = !sel.size; delBtn.textContent = sel.size ? `선택한 응답 ${sel.size}건 삭제` : "선택한 응답 삭제"; } });
+    const essay = r.essay ? [r.essay.first, r.essay.question, r.essay.revised].filter(Boolean).join(" / ") : "";
+    return [{ node: cb, text: "" }, r.at, `${r.grade}-${r.cls} ${r.num}번`, r.act_ai ? "예" : "–", r.act_curi ? "예" : "–", essay.length > 40 ? essay.slice(0, 40) + "…" : (essay || "–")];
+  });
+  const del = DATA.deleted || [];
+  return el("section", { class: "sec", id: "manage" },
+    el("h2", { text: "응답 관리 (테스트 응답 지우기)" }),
+    el("p", { class: "lead", text: `제출된 응답 ${all.length}건(같은 학생이 여러 번 낸 것 포함, 최신순). 테스트로 낸 응답을 골라 삭제하면 분석·엑셀에서 빠져요. 실제로 지우지 않아서 되살릴 수 있어요.` }),
+    el("div", { class: "tools" }, delBtn, msg),
+    all.length ? tableBlock(["선택", "제출 시각", "학생", "AI 문제 풀기", "큐리", "서술형(앞부분)"], rows, { left: [5] }) : el("p", { class: "small", text: "아직 응답이 없어요." }),
+    del.length ? el("details", { style: "margin-top:10px" }, el("summary", { style: "cursor:pointer;font-weight:700", text: `삭제한 응답 ${del.length}건` }),
+      del.map(d => el("div", { class: "tools", style: "align-items:center" }, el("span", { class: "small", text: `${d.at} · ${d.grade}-${d.cls} ${d.num}번 (삭제 ${d.deleted_at})` }), el("button", { class: "tbtn", type: "button", onclick: () => restore(d.id), text: "되살리기" })))) : null);
 }
 
 function secStatus(R) {

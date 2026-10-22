@@ -99,6 +99,8 @@ await student({ width: 1280, height: 800 }, true);
   await cfgRoute(ctx);
   let cfgSaved = null;
   await ctx.route(/rpc\/post_survey_set_config/, async r => { cfgSaved = JSON.parse(r.request().postData()).essay; CFG = cfgSaved; await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) }); });
+  let delCall = null;
+  await ctx.route(/rpc\/post_survey_set_deleted/, async r => { delCall = JSON.parse(r.request().postData()); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ updated: delCall.ids.length }) }); });
   await ctx.route(/\/api\/classify/, async r => { const { items } = JSON.parse(r.request().postData()); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: items.map(i => ({ id: i.id, codes: ["원리·이유", "용어·단위"] })) }) }); });
   const pg = await ctx.newPage(); pg.on("pageerror", e => t(false, "pageerror " + e.message));
   await pg.goto("http://localhost:4300/teacher"); await sleep(300);
@@ -135,6 +137,11 @@ await student({ width: 1280, height: 800 }, true);
   await card.getByLabel("기타").check(); await sleep(100);
   await pg.getByRole("button", { name: /수정한 분류 저장/ }).click(); await sleep(500);
   t(saved.some(s => s.source === "teacher" && s.codes.includes("기타")), "교사가 고친 분류 저장");
+  // 응답 삭제
+  pg.once("dialog", d => d.accept());
+  await pg.locator("#manage input[type=checkbox]").first().check();
+  await pg.getByRole("button", { name: /선택한 응답 1건 삭제/ }).click(); await sleep(600);
+  t(delCall && delCall.deleted === true && delCall.ids.length === 1 && delCall.ids[0] === Math.max(...FAKE.rows.map(r => r.id)), "응답 관리: 선택한 응답 삭제 요청(최신 응답)");
   // 서술형 문항 수정 → 학생 화면 반영
   await pg.getByText("학생에게 보이는 서술형 문항 수정하기").click();
   await pg.getByLabel("서술형 질문").fill("AI의 질문으로 생각이 바뀐 순간을 적어 주세요.");
