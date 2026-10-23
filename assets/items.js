@@ -1,12 +1,11 @@
 // 사후 설문 문항 — 문구는 설문지(사후검사_설문지)와 한 글자도 다르지 않게 유지
-export const APP_VERSION = "2026-10-22b";
+export const APP_VERSION = "2026-10-23a";
 // 구글 스프레드시트(Apps Script 웹 앱) 주소 — 비어 있으면 시트로는 보내지 않음
 export const SHEET_URL = "";
 export const SUPABASE_URL = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
 export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmFheHh3cXFyYnBubG95anpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMjI1MTgsImV4cCI6MjEwMTU5ODUxOH0.8TKT8aExXiyazDY313G9BHTvZCSu2yrTdxlgwxpNCB8"; // 공개용 anon 키 (RLS: 추가만 가능)
 
 export const SCALE = ["전혀 그렇지 않다", "그렇지 않다", "보통이다", "그렇다", "매우 그렇다"];
-export const SCALE_FACE = ["😣", "🙁", "😐", "🙂", "😄"];
 
 export const INTRO = "본 설문지는 이번 학기 AI와 문답하며 오류를 찾아 수정하는 과학 수업이 여러분의 과학적 의사소통 능력에 어떤 도움을 주었는지 알아보기 위한 연구의 사후 검사입니다. 수집된 자료는 연구 목적으로만 사용되며 성적과 관계없고 익명으로 처리됩니다. 정답이 있는 검사가 아니므로 솔직하게 응답해 주시기 바랍니다.";
 

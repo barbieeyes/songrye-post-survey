@@ -1,4 +1,4 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, SCALE_FACE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js";
 let ESSAY_CFG = DEFAULT_ESSAY_CFG;
 
 const DRAFT_KEY = "post-survey-draft-v1";
@@ -52,7 +52,7 @@ function likert(name, value, onPick, labelId) {
       const id = `${name}-${v}`;
       return el("label", { class: "opt", for: id },
         el("input", { type: "radio", id, name, value: String(v), checked: value === v, onchange: () => onPick(v) }),
-        el("span", { class: `s${v}` }, el("i", { "aria-hidden": "true", text: SCALE_FACE[i] }), el("b", { text: String(v) }), el("small", { text: lab })));
+        el("span", { class: `s${v}` }, el("b", { text: String(v) }), el("small", { text: lab })));
     }));
 }
 
@@ -88,7 +88,7 @@ function itemBlock(it, dual) {
     for (const [k, lab] of [["pre", "수업 전의 나"], ["now", "수업 후의 나"]]) {
       const subId = `sl-${it.n}-${k}`;
       fs.append(el("div", { class: `when when-${k}` },
-        el("div", { class: "sub-label", id: subId }, el("span", { class: "when-ico", "aria-hidden": "true", text: k === "pre" ? "🕰️" : "🌱" }), lab, el("span", { class: "when-tag", text: k === "pre" ? "BEFORE" : "AFTER" })),
+        el("div", { class: "sub-label", id: subId }, el("span", { class: "when-tag", text: k === "pre" ? "BEFORE" : "AFTER" }), lab),
         likert(`a${it.n}${k}`, cur[k], v => { S.ans[it.n] = { ...(S.ans[it.n] || {}), [k]: v }; save(); clearMiss(fs, it, true); }, `${legendId} ${subId}`)));
     }
   } else {

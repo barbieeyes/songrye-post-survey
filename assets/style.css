@@ -65,16 +65,16 @@ textarea{width:100%;min-height:92px;border:1.5px solid var(--line);border-radius
 .dom-ico{font-size:34px;line-height:1;width:56px;height:56px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 fieldset.q{border-top:5px solid var(--acc,#5847B8)}
 fieldset.q .qtitle .num{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:99px;background:var(--acc,#5847B8);color:white;font-size:14px;margin-right:6px;padding:0 6px;vertical-align:1px}
-.when{clear:both;border-radius:14px;padding:4px 10px 10px;margin-top:8px}
-.when-pre{background:#F1F3F8;border:1.5px dashed #B9C0D2}
-.when-now{background:#EAFBF0;border:1.5px solid #7DD6A0}
-.when .sub-label{display:flex;align-items:center;gap:6px;font-size:14.5px;color:#2E3348;margin:8px 0}
-.when-ico{font-size:20px}
-.when-tag{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:99px;padding:2px 8px}
-.when-pre .when-tag{background:#DDE2EE;color:#4A5370}
-.when-now .when-tag{background:#2E9E5B;color:white}
+.when{clear:both;border-radius:14px;padding:0 10px 10px;margin-top:10px;overflow:hidden}
+.when-pre{background:#FDEDED;border:2.5px solid #C62828}
+.when-now{background:#EAF1FD;border:2.5px solid #1E4FC2}
+.when .sub-label{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;color:white;margin:0 -10px 10px;padding:8px 12px}
+.when-pre .sub-label{background:#C62828}
+.when-now .sub-label{background:#1E4FC2}
+.when-tag{font-size:13px;font-weight:900;letter-spacing:.08em;border-radius:99px;padding:3px 10px;background:white}
+.when-pre .when-tag{color:#C62828}
+.when-now .when-tag{color:#1E4FC2}
 .opt span{position:relative;border-width:2px}
-.opt span i{font-style:normal;font-size:20px;line-height:1.1}
 .opt span.s1{border-color:#F7B3AA}.opt span.s1 b{color:#D9452F}
 .opt span.s2{border-color:#F9CFA0}.opt span.s2 b{color:#D97A12}
 .opt span.s3{border-color:#F3DE95}.opt span.s3 b{color:#A88300}
@@ -87,7 +87,6 @@ fieldset.q .qtitle .num{display:inline-flex;align-items:center;justify-content:c
 .opt input:checked+span.s5{background:#2F74E6;border-color:#2F74E6}
 .opt input:checked+span b,.opt input:checked+span small{color:white}
 .opt input:checked+span{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.15)}
-.when-pre .opt span{background:#FAFBFD}
 .btn.primary{background:linear-gradient(135deg,#6D5BD0,#3E8EF7);border:none}
 .card h2{font-size:18px}
-@media (max-width:420px){ .opt span i{font-size:17px} .dom-ico{width:46px;height:46px;font-size:28px} }
+@media (max-width:420px){ .dom-ico{width:46px;height:46px;font-size:28px} }
