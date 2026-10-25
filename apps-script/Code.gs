@@ -17,7 +17,7 @@ function doPost(e) {
       var v = a[n] || a[String(n)] || {};
       row.push(score_(v.pre), score_(v.now));
     }
-    for (var m = 9; m <= 30; m++) {
+    for (var m = 9; m <= 35; m++) {
       var x = a[m] !== undefined ? a[m] : a[String(m)];
       row.push(x === null || x === undefined ? "해당 없음" : score_(x));
     }
@@ -31,6 +31,18 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// 처음 한 번: Apps Script 편집기에서 setupHeader 를 실행하면 '응답' 시트 1행에 머리글을 씁니다.
+function setupHeader() {
+  var h = ["제출 시각", "학년", "반", "번호", "AI 문제 풀기", "큐리 탐구"];
+  for (var n = 1; n <= 8; n++) h.push(n + "_수업전", n + "_수업후");
+  for (var m = 9; m <= 35; m++) h.push(String(m));
+  h.push("36_①처음", "36_②질문", "36_③수정한것", "앱 버전");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName("응답") || ss.insertSheet("응답");
+  sh.getRange(1, 1, 1, h.length).setValues([h]);
+  sh.setFrozenRows(1);
 }
 
 function num_(v) { var n = Number(v); return isFinite(n) ? n : ""; }

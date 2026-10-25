@@ -1,5 +1,5 @@
 // 사후 설문 분석 (브라우저·Node 공용 순수 함수)
-import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES } from "./items.js";
+import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES, PRE_DOMAIN } from "./items.js";
 import { mean, sd, pairedT, welchT, cronbach, spearman } from "./stats.js";
 
 const isNum = v => typeof v === "number" && Number.isFinite(v);
@@ -114,7 +114,8 @@ export function analyze(allRows, curiList = [], preRows = null) {
 const essayLen = r => ((r.essay.first || "") + (r.essay.question || "") + (r.essay.revised || "")).length;
 
 // ── 사전 설문 CSV ──
-const PRE_MAP = [[25, 8], [26, 9], [27, 16], [28, 18], [29, 19], [30, 21]];
+const PRE_MAP = PRE_DOMAIN.items.map(i => [i.n, i.pre]); // [사후 번호, 사전 번호]
+const PRE_REV = PRE_DOMAIN.items.filter(i => i.reverse).map(i => i.pre); // 사전 16·18·19
 export function parseCsv(text) {
   text = text.replace(/^﻿/, "");
   const rows = []; let row = [], cell = "", q = false;
@@ -151,9 +152,9 @@ export function readPreCsv(text) {
   return { data, hasId: ni >= 0 && gi >= 0 && ci >= 0 && data.filter(d => isNum(d.num)).length >= data.length * 0.5 };
 }
 function comparePre(rows, pre) {
-  const preRev = (preNo, v) => ([16, 18, 19].includes(preNo) && isNum(v) ? 6 - v : v);
+  const preRev = (preNo, v) => (PRE_REV.includes(preNo) && isNum(v) ? 6 - v : v);
   const preDomain = p => { const v = PRE_MAP.map(([, pn]) => preRev(pn, p.v[pn])).filter(isNum); return v.length ? mean(v) : NaN; };
-  const D6 = DOMAINS.find(d => d.id === "VI");
+  const D6 = PRE_DOMAIN;
   const postDomain = r => domainScore(r, D6, "now");
   const pm = new Map(pre.data.filter(p => isNum(p.grade) && isNum(p.cls) && isNum(p.num)).map(p => [`${p.grade}-${p.cls}-${p.num}`, p]));
   const pairs = pre.hasId ? rows.map(r => ({ r, p: pm.get(keyOf(r)) })).filter(x => x.p) : [];
@@ -162,7 +163,7 @@ function comparePre(rows, pre) {
     const res = usePaired
       ? pairedT(pairs.map(x => preRev(preNo, x.p.v[preNo])), pairs.map(x => score(x.r, post)))
       : welchT(pre.data.map(p => preRev(preNo, p.v[preNo])), rows.map(r => score(r, post)));
-    return { post, pre: preNo, reverse: [16, 18, 19].includes(preNo), ...res };
+    return { post, pre: preNo, reverse: PRE_REV.includes(preNo), ...res };
   });
   const total = usePaired ? pairedT(pairs.map(x => preDomain(x.p)), pairs.map(x => postDomain(x.r))) : welchT(pre.data.map(preDomain), rows.map(postDomain));
   return { method: usePaired ? "paired" : "welch", matched: pairs.length, nPre: pre.data.length, items, total };

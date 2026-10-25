@@ -1,4 +1,6 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig } from "./items.js";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js";
+const PRE_DOM = `영역${PRE_DOMAIN.short.split(" ")[0]}`, AI_NAME = `영역${AI_DOMAIN.short.split(" ")[0]}`, EN = ESSAY.n;
+const AI_ONLY_DOM = DOMAINS.find(d => d.items.some(i => AI_ONLY_ITEMS.includes(i.n)));
 import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js";
 import { fmt, fmtP, stars } from "./stats.js";
 import { makeXlsx } from "./xlsx.js";
@@ -151,9 +153,9 @@ function secDomains(R) {
   const legend = el("div", { class: "legend" }, SCALE.map((s, i) => el("span", {}, el("i", { style: `background:${DIST_COLORS[i]}` }), `${i + 1} ${s}`)));
   return el("section", { class: "sec", id: "domains" },
     el("h2", { text: "영역별 결과" }),
-    el("p", { class: "lead", text: "역문항(12, 27, 28, 29번)은 6에서 뺀 점수로 계산해서, 모든 영역에서 점수가 높을수록 긍정적이에요. 분포 막대는 학생이 실제로 고른 원점수예요." }),
+    el("p", { class: "lead", text: `역문항(${REVERSE.join(", ")}번)은 6에서 뺀 점수로 계산해서, 모든 영역에서 점수가 높을수록 긍정적이에요. 분포 막대는 학생이 실제로 고른 원점수예요.` }),
     tableBlock(["영역", "n", "평균", "표준편차", "Cronbach α"], sum),
-    el("p", { class: "note", text: "α는 문항이 3개 이상인 영역만, 모든 문항에 답한 학생으로 계산해요. 영역Ⅴ에는 AI 문제 풀기를 한 학생만 답하는 21번이 있어서 α의 n이 다를 수 있어요." }),
+    el("p", { class: "note", text: `α는 문항이 3개 이상인 영역만, 모든 문항에 답한 학생으로 계산해요. 영역${AI_ONLY_DOM ? AI_ONLY_DOM.short.split(" ")[0] : ""}에는 AI 문제 풀기를 한 학생만 답하는 ${AI_ONLY_ITEMS.join(", ")}번이 있어서 α의 n이 다를 수 있어요.` }),
     legend,
     R.domains.map(d => el("div", { style: "margin-top:14px" },
       el("h3", { style: "font-size:15.5px;margin:10px 0 2px", text: d.name }),
@@ -190,13 +192,13 @@ function secPre(R) {
     const P = R.pre, paired = P.method === "paired";
     body.push(el("div", { class: "alert ok", text: paired ? `대응표본 t검정을 썼어요. 사전·사후 모두 있는 학생 ${P.matched}명을 학년·반·번호로 짝지었어요. (사전 파일: ${PRE_NAME}, ${P.nPre}명)` : `학번으로 짝지을 수 없어서(또는 짝지은 학생이 10명 미만) 두 집단을 Welch t검정으로 비교했어요. (사전 ${P.nPre}명 · 사후 ${R.N}명, 사전 파일: ${PRE_NAME})` }));
     body.push(tableBlock(["사후 번호", "사전 번호", "문항", paired ? "n" : "n(사전/사후)", "사전 M(SD)", "사후 M(SD)", "차이", "t", "df", "p", paired ? "dz" : "d"],
-      [...P.items.map(i => [i.post, i.pre, DOMAINS.find(d => d.id === "VI").items.find(x => x.n === i.post).t + (i.reverse ? " (역채점)" : ""), paired ? i.n : `${i.n1}/${i.n2}`, `${fmt(i.m1)} (${fmt(i.sd1)})`, `${fmt(i.m2)} (${fmt(i.sd2)})`, fmt(i.diff), fmt(i.t), fmt(i.df, paired ? 0 : 1), fmtP(i.p) + stars(i.p), fmt(paired ? i.dz : i.d)]),
-       ["전체", "", "영역Ⅵ 평균", paired ? P.total.n : `${P.total.n1}/${P.total.n2}`, `${fmt(P.total.m1)} (${fmt(P.total.sd1)})`, `${fmt(P.total.m2)} (${fmt(P.total.sd2)})`, fmt(P.total.diff), fmt(P.total.t), fmt(P.total.df, paired ? 0 : 1), fmtP(P.total.p) + stars(P.total.p), fmt(paired ? P.total.dz : P.total.d)]],
+      [...P.items.map(i => [i.post, i.pre, PRE_DOMAIN.items.find(x => x.n === i.post).t + (i.reverse ? " (역채점)" : ""), paired ? i.n : `${i.n1}/${i.n2}`, `${fmt(i.m1)} (${fmt(i.sd1)})`, `${fmt(i.m2)} (${fmt(i.sd2)})`, fmt(i.diff), fmt(i.t), fmt(i.df, paired ? 0 : 1), fmtP(i.p) + stars(i.p), fmt(paired ? i.dz : i.d)]),
+       ["전체", "", `${PRE_DOM} 평균`, paired ? P.total.n : `${P.total.n1}/${P.total.n2}`, `${fmt(P.total.m1)} (${fmt(P.total.sd1)})`, `${fmt(P.total.m2)} (${fmt(P.total.sd2)})`, fmt(P.total.diff), fmt(P.total.t), fmt(P.total.df, paired ? 0 : 1), fmtP(P.total.p) + stars(P.total.p), fmt(paired ? P.total.dz : P.total.d)]],
       { left: [2], sumRow: P.items.length }));
-    body.push(el("p", { class: "note", text: "사전 16·18·19번(사후 27·28·29번)은 역채점해서 비교해요. 점수가 높을수록 긍정적이에요." }));
+    body.push(el("p", { class: "note", text: `사전 ${PRE_DOMAIN.items.filter(i => i.reverse).map(i => i.pre).join("·")}번(사후 ${PRE_DOMAIN.items.filter(i => i.reverse).map(i => i.n).join("·")}번)은 역채점해서 비교해요. 점수가 높을수록 긍정적이에요.` }));
   }
   return el("section", { class: "sec", id: "pre" },
-    el("h2", { text: "영역Ⅵ: 사전 설문과 비교" }),
+    el("h2", { text: `${PRE_DOM}: 사전 설문과 비교` }),
     el("p", { class: "lead", text: "사전 설문 결과 CSV를 올려 주세요. 머리글: 학년, 반, 번호(없어도 됨), 문항8, 문항9, 문항16, 문항18, 문항19, 문항21. 파일은 이 브라우저에서만 읽고 어디에도 저장하지 않아요." }),
     el("div", { class: "tools" }, file, R.pre ? el("button", { class: "tbtn", type: "button", onclick: () => { PRE = null; PRE_NAME = ""; renderAll(); }, text: "사전 파일 빼기" }) : null),
     body);
@@ -209,7 +211,7 @@ function secGroups(R) {
     el("h3", { style: "font-size:15.5px;margin:6px 0", text: "AI와 문답하며 문제를 풀었는지에 따라" }),
     tableBlock(["영역", "푼 학생 n", "푼 학생 M(SD)", "안 푼 학생 n", "안 푼 학생 M(SD)", "차이", "t(Welch)", "p"],
       ids.map((id, i) => { const y = R.byAct.yes[i], n = R.byAct.no[i], t = R.byAct.tests[i]; return [DOMAINS[i].short + (DOMAINS[i].dual ? " (지금)" : ""), y.n, `${fmt(y.mean)} (${fmt(y.sd)})`, n.n, n.n ? `${fmt(n.mean)} (${fmt(n.sd)})` : "–", fmt(t.diff), fmt(t.t), fmtP(t.p) + stars(t.p)]; })),
-    el("p", { class: "note", text: `영역Ⅰ 향상(수업 후−수업 전): 푼 학생 ${fmt(R.byAct.gainI.yes.diff)}점(n=${R.byAct.gainI.yes.n}), 안 푼 학생 ${fmt(R.byAct.gainI.no.diff)}점(n=${R.byAct.gainI.no.n}). 영역Ⅲ은 푼 학생만 답해서 비교하지 않아요.` }),
+    el("p", { class: "note", text: `영역Ⅰ 향상(수업 후−수업 전): 푼 학생 ${fmt(R.byAct.gainI.yes.diff)}점(n=${R.byAct.gainI.yes.n}), 안 푼 학생 ${fmt(R.byAct.gainI.no.diff)}점(n=${R.byAct.gainI.no.n}). ${AI_NAME}은 푼 학생만 답해서 비교하지 않아요.` }),
     el("h3", { style: "font-size:15.5px;margin:14px 0 6px", text: "반별 영역 평균" }),
     tableBlock(["반", "n", ...DOMAINS.map(d => d.id + (d.dual ? "(수업 후)" : "")), "Ⅰ 향상"], R.byClassDomain.map(c => [c.cls.replace("-", "학년 ") + "반", c.n, ...c.means.map(m => fmt(m)), fmt(c.gainI)])));
 }
@@ -286,7 +288,7 @@ function secEssay(R) {
     el("div", { class: "essay-label", text: "답 칸 제목 (3개)" }), el("div", { style: "display:flex;gap:8px;flex-wrap:wrap" }, lBoxes),
     el("div", { class: "tools", style: "margin-top:10px" }, cfgSave, cfgMsg));
   return el("section", { class: "sec", id: "essay" },
-    el("h2", { text: "서술형 31번: 무엇이 바뀌었나" }),
+    el("h2", { text: `서술형 ${EN}번: 무엇이 바뀌었나` }),
     editor,
     el("p", { class: "lead", text: `서술형에 답한 학생 ${R.essay.n}명 · 분류된 응답 ${R.essay.coded}개. 한 응답에 여러 범주를 고를 수 있어요. AI 분류는 초안이니, 체크를 수정한 뒤 '수정한 분류 저장'을 눌러 주세요.` }),
     tableBlock(["범주", "응답 수", "비율"], R.essay.freq.map(f => [f.code, f.n, R.essay.coded ? `${Math.round(f.n / R.essay.coded * 100)}%` : "–"])),
@@ -327,25 +329,25 @@ function sentences(R) {
   if (R.N) out.push(`5점 척도 영역 평균은 ${parts.join(", ")}였다(역문항은 역채점).`);
   if (R.pre) {
     const P = R.pre.total, paired = R.pre.method === "paired";
-    out.push(`사전 설문과 같은 문항(영역Ⅵ)의 평균은 사전 M=${fmt(P.m1)}에서 사후 M=${fmt(P.m2)}로 ${P.diff > 0 ? "높아졌고" : "낮아졌고"}, ${paired ? "대응표본" : "Welch"} t검정 결과 ${P.p < .05 ? "유의한 차이가 있었다" : "유의한 차이는 없었다"}(t(${fmt(P.df, paired ? 0 : 1)})=${fmt(P.t)}, ${pTxt(P.p)}, ${paired ? "dz" : "d"}=${fmt(paired ? P.dz : P.d)}).`);
+    out.push(`사전 설문과 같은 문항(${PRE_DOM})의 평균은 사전 M=${fmt(P.m1)}에서 사후 M=${fmt(P.m2)}로 ${P.diff > 0 ? "높아졌고" : "낮아졌고"}, ${paired ? "대응표본" : "Welch"} t검정 결과 ${P.p < .05 ? "유의한 차이가 있었다" : "유의한 차이는 없었다"}(t(${fmt(P.df, paired ? 0 : 1)})=${fmt(P.t)}, ${pTxt(P.p)}, ${paired ? "dz" : "d"}=${fmt(paired ? P.dz : P.d)}).`);
   }
   const cv = R.curi.vars.find(v => v.key === "stageGain");
   if (cv && cv.n >= 3) out.push(`큐리 기록과 연결된 ${cv.n}명에서 영역Ⅰ 향상 정도와 큐리 단계별 체크 통과 향상의 스피어만 상관은 ρ=${fmt(cv.rho, 2)}(${pTxt(cv.p)})였다.`);
   if (R.essay.coded) {
     const f = [...R.essay.freq].filter(x => x.code !== "기타").sort((a, b) => b.n - a.n);
-    out.push(`서술형(31번) ${R.essay.coded}개 응답에서 AI의 질문을 받고 가장 많이 수정한 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
+    out.push(`서술형(${EN}번) ${R.essay.coded}개 응답에서 AI의 질문을 받고 가장 많이 수정한 부분은 '${f[0].code}'(${f[0].n}개, ${Math.round(f[0].n / R.essay.coded * 100)}%)였고, 다음은 '${f[1].code}'(${f[1].n}개)였다.`);
   }
   return out;
 }
 
 function exportXlsx(R) {
   const allItems = DOMAINS.flatMap(d => d.items.map(it => ({ ...it, dual: !!d.dual })));
-  const head = ["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_수업후`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), "31_①처음", "31_②질문", "31_③수정한것", "31_분류"];
+  const head = ["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_수업후`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), `${EN}_①처음`, `${EN}_②질문`, `${EN}_③수정한것`, `${EN}_분류`];
   const raw = [head, ...R.rows.map(r => [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오",
     ...allItems.flatMap(it => { const a = r.answers[it.n] ?? r.answers[String(it.n)]; return it.dual ? [a ? a.pre : "", a ? a.now : ""] : [a ?? "해당 없음"]; }),
     r.essay.first || "", r.essay.question || "", r.essay.revised || "", (r.codes || []).join(", ")])];
   const r2 = v => Number.isFinite(v) ? Math.round(v * 100) / 100 : "";
-  const per = [["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", "Ⅰ 수업 전 평균", "Ⅰ 수업 후 평균", "Ⅰ 향상(후−전)", ...DOMAINS.filter(d => !d.dual).map(d => `${d.short} 평균`), "31 분류"],
+  const per = [["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", "Ⅰ 수업 전 평균", "Ⅰ 수업 후 평균", "Ⅰ 향상(후−전)", ...DOMAINS.filter(d => !d.dual).map(d => `${d.short} 평균`), `${EN} 분류`],
     ...R.rows.map(r => { const D1 = DOMAINS[0], pre = domainScore(r, D1, "pre"), now = domainScore(r, D1, "now");
       return [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오", r2(pre), r2(now), r2(now - pre), ...DOMAINS.filter(d => !d.dual).map(d => r2(domainScore(r, d, "now"))), (r.codes || []).join(", ")]; })];
   const summ = [["영역", "구분", "n", "평균", "표준편차", "Cronbach α"]];
@@ -355,7 +357,7 @@ function exportXlsx(R) {
   const tt = [["분석", "문항", "n", "평균1", "SD1", "평균2", "SD2", "차이", "t", "df", "p", "효과크기"]];
   for (const i of R.dual.items) tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", `${i.num}. ${i.sub}`, i.n, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), i.df, +i.p.toPrecision(4), +fmt(i.dz, 3)]);
   const T = R.dual.total; tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", "영역 평균", T.n, +fmt(T.m1, 3), +fmt(T.sd1, 3), +fmt(T.m2, 3), +fmt(T.sd2, 3), +fmt(T.diff, 3), +fmt(T.t, 3), T.df, +T.p.toPrecision(4), +fmt(T.dz, 3)]);
-  if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: "영역Ⅵ 평균", pre: "" }]) tt.push([`영역Ⅵ 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
+  if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: `${PRE_DOM} 평균`, pre: "" }]) tt.push([`${PRE_DOM} 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
   for (const v of R.curi.vars) tt.push(["큐리 연결(스피어만)", `영역Ⅰ 향상 × ${v.label}`, v.n, "", "", "", "", "", "", "", Number.isFinite(v.p) ? +v.p.toPrecision(4) : "", Number.isFinite(v.rho) ? +fmt(v.rho, 3) : ""]);
   const es = [["학년", "반", "번호", "당시 질문", "답1", "답2", "답3", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.prompt || ESSAY.t, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
   const blob = makeXlsx([{ name: "학생별 점수", rows: per }, { name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);

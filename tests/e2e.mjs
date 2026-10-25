@@ -59,8 +59,8 @@ async function student(vp, actAi) {
     await pg.getByRole("button", { name: "다음" }).click(); await sleep(150);
   }
   console.log("   본 영역:", seen.join(" | "));
-  const hasIII = seen.some(h => h.includes("영역Ⅲ"));
-  t(actAi ? hasIII : !hasIII, actAi ? "AI 문제 풀기 체크 → 영역Ⅲ 보임" : "AI 문제 풀기 미체크 → 영역Ⅲ 숨김");
+  const hasIII = seen.some(h => h.includes("영역Ⅳ"));
+  t(actAi ? hasIII : !hasIII, actAi ? "AI 문제 풀기 체크 → 영역Ⅳ 보임" : "AI 문제 풀기 미체크 → 영역Ⅳ 숨김");
   t(!(await pg.getByText("역채점").count()) && !(await pg.getByText("역문항").count()), "학생 화면에 역문항 표시 없음");
   await pg.getByLabel("① 처음에 쓴 것").fill("힘이 세져서 빨라진다");
   await pg.getByLabel("② 받은 질문").fill("그 힘은 어떤 에너지야?");
@@ -74,8 +74,8 @@ async function student(vp, actAi) {
   const p = posted[0];
   t(p.grade === 3 && p.cls === 2 && p.num === 14 && p.act_curi === true && p.act_ai === actAi, "학년·반·번호·활동 저장");
   t(p.answers["1"].pre === 2 && p.answers["1"].now === 4 && p.answers["8"].now === 5, "영역Ⅰ 수업 전/지금 값 정확");
-  t(actAi ? p.answers["13"] !== null && p.answers["21"] !== null : p.answers["13"] === null && p.answers["15"] === null && p.answers["21"] === null, "해당 없음 문항은 null");
-  t(Object.keys(p.answers).length === 30 && p.essay.revised.includes("운동에너지") && p.essay.prompt === CFG.question, "30문항 + 서술형(당시 질문 포함) 저장");
+  t(actAi ? p.answers["18"] !== null && p.answers["26"] !== null && p.answers["13"] !== null : p.answers["18"] === null && p.answers["20"] === null && p.answers["26"] === null && p.answers["13"] !== null, "해당 없음 문항은 null");
+  t(Object.keys(p.answers).length === 35 && p.essay.revised.includes("운동에너지") && p.essay.prompt === CFG.question, "35문항 + 서술형(당시 질문 포함) 저장");
   t(!JSON.stringify(p).toLowerCase().includes("snorkl"), "데이터에 Snorkl 단어 없음");
   t(await pg.getByText("제출했어요").isVisible(), "완료 화면");
   await pg.getByRole("button", { name: "제출했어요" }).count();
@@ -115,20 +115,20 @@ await student({ width: 1280, height: 800 }, true);
   const r1 = await pg.locator("#prepost tbody tr").first().locator("td").allTextContents();
   t(near(r1[6], EXP.item1_t), `1번 문항 t = ${r1[6]} (scipy ${EXP.item1_t.toFixed(3)})`);
   const i12 = await pg.locator("#domains tr", { hasText: "포기하고 싶었다" }).locator("td").allTextContents();
-  t(near(i12[3], EXP.item12_mean) && i12[1].includes("역채점"), `12번 역채점 평균 ${i12[3]} (기대 ${EXP.item12_mean.toFixed(3)})`);
-  const a2 = await pg.locator("#domains tr", { hasText: "Ⅱ 오류 분석" }).first().locator("td").allTextContents();
-  t(near(a2[4], EXP.alpha_II, 0.0011), `영역Ⅱ α = ${a2[4]} (scipy식 ${EXP.alpha_II.toFixed(4)})`);
+  t(near(i12[3], EXP.item12_mean) && i12[1].includes("역채점"), `17번 역채점 평균 ${i12[3]} (기대 ${EXP.item12_mean.toFixed(3)})`);
+  const a2 = await pg.locator("#domains tr", { hasText: "Ⅲ 오류 분석" }).first().locator("td").allTextContents();
+  t(near(a2[4], EXP.alpha_II, 0.0011), `영역Ⅲ α = ${a2[4]} (scipy식 ${EXP.alpha_II.toFixed(4)})`);
   const sp = await pg.locator("#curi tbody tr", { hasText: "1차→최종" }).locator("td").allTextContents();
   t(Number(sp[2]) === EXP.sp_n && near(sp[3], EXP.sp_rho, 0.0011), `큐리 연결 스피어만 n=${sp[2]}, ρ=${sp[3]} (scipy ${EXP.sp_rho.toFixed(4)})`);
   // 사전 CSV (학번 있음 → 대응)
   await pg.locator("#pre input[type=file]").setInputFiles(ROOT + "tests/pre_with_id.csv"); await sleep(400);
   t(await pg.getByText("대응표본 t검정을 썼어요").isVisible(), "사전 CSV(학번 있음) → 대응표본");
   const pr = await pg.locator("#pre tr.sum td").allTextContents();
-  t(near(pr[7], EXP.pre_paired_t) && Number(pr[3]) === EXP.pre_n, `영역Ⅵ 사전 대응 t = ${pr[7]} (scipy ${EXP.pre_paired_t.toFixed(3)})`);
+  t(near(pr[7], EXP.pre_paired_t) && Number(pr[3]) === EXP.pre_n, `영역Ⅶ 사전 대응 t = ${pr[7]} (scipy ${EXP.pre_paired_t.toFixed(3)})`);
   await pg.locator("#pre input[type=file]").setInputFiles(ROOT + "tests/pre_no_id.csv"); await sleep(400);
   t(await pg.getByText("Welch t검정으로 비교했어요").isVisible(), "사전 CSV(학번 없음) → Welch");
   const pw2 = await pg.locator("#pre tr.sum td").allTextContents();
-  t(near(pw2[7], EXP.pre_welch_t), `영역Ⅵ Welch t = ${pw2[7]} (scipy ${EXP.pre_welch_t.toFixed(3)})`);
+  t(near(pw2[7], EXP.pre_welch_t), `영역Ⅶ Welch t = ${pw2[7]} (scipy ${EXP.pre_welch_t.toFixed(3)})`);
   // 서술형 AI 분류 → 저장 → 교사 수정
   const before = saved.length;
   await pg.getByRole("button", { name: /AI로 분류하기/ }).click(); await sleep(1200);
@@ -148,7 +148,7 @@ await student({ width: 1280, height: 800 }, true);
   await pg.getByLabel("답 칸 3 제목").fill("");
   await pg.getByRole("button", { name: "서술형 문항 저장" }).click(); await sleep(300);
   t(cfgSaved && cfgSaved.question.includes("생각이 바뀐 순간") && cfgSaved.labels[2] === "", "교사: 서술형 문항 수정 저장");
-  { const sp = await ctx.newPage(); await sp.goto("http://localhost:4300/"); await sp.evaluate(() => localStorage.setItem("post-survey-draft-v1", JSON.stringify({ step: 6, grade: "3", cls: "1", num: "1", actAi: false, actCuri: true, ans: {}, essay: { first: "", question: "", revised: "" } }))); await sp.reload(); await sleep(500);
+  { const sp = await ctx.newPage(); await sp.goto("http://localhost:4300/"); await sp.evaluate(() => localStorage.setItem("post-survey-draft-v2", JSON.stringify({ step: 7, grade: "3", cls: "1", num: "1", actAi: false, actCuri: true, ans: {}, essay: { first: "", question: "", revised: "" } }))); await sp.reload(); await sleep(500);
     t(await sp.getByText("생각이 바뀐 순간").isVisible() && (await sp.locator("textarea").count()) === 2, "학생 화면에 수정한 질문 반영, 빈 칸은 숨김"); await sp.close(); }
   // 보고서 문장·표 복사·엑셀
   const sent = await pg.locator(".sentence").first().textContent();

@@ -1,8 +1,8 @@
 import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js";
 let ESSAY_CFG = DEFAULT_ESSAY_CFG;
 
-const DRAFT_KEY = "post-survey-draft-v1";
-const DONE_KEY = "post-survey-done-v1";
+const DRAFT_KEY = "post-survey-draft-v2";
+const DONE_KEY = "post-survey-done-v2";
 const $app = document.getElementById("app");
 const $prev = document.getElementById("prev");
 const $next = document.getElementById("next");

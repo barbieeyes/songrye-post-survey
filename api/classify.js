@@ -1,4 +1,4 @@
-// 서술형 31번 AI 분류 (교사 화면에서만 호출). ANTHROPIC_API_KEY가 있으면 직접, 없으면 큐리 앱(/api/curi)을 거쳐 호출.
+// 서술형 36번 AI 분류 (교사 화면에서만 호출). ANTHROPIC_API_KEY가 있으면 직접, 없으면 큐리 앱(/api/curi)을 거쳐 호출.
 export const config = { maxDuration: 60 };
 
 const CODES = ["용어·단위", "근거·자료", "원리·이유", "사고 과정·순서", "기타"];
