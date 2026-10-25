@@ -1,5 +1,5 @@
 // 사후 설문 문항 — 문구는 설문지(사후검사_설문지)와 한 글자도 다르지 않게 유지
-export const APP_VERSION = "2026-10-25b";
+export const APP_VERSION = "2026-10-26a";
 // 구글 스프레드시트(Apps Script 웹 앱) 주소 — 비어 있으면 시트로는 보내지 않음
 export const SHEET_URL = "";
 export const SUPABASE_URL = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";

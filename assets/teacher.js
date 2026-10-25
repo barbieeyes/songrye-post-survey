@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261025c";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261026a";
 const PRE_DOM = `영역${PRE_DOMAIN.short.split(" ")[0]}`, AI_NAME = `영역${AI_DOMAIN.short.split(" ")[0]}`, EN = ESSAY.n;
 const AI_ONLY_DOM = DOMAINS.find(d => d.items.some(i => AI_ONLY_ITEMS.includes(i.n)));
-import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261025c";
-import { fmt, fmtP, stars } from "./stats.js?v=20261025c";
-import { makeXlsx } from "./xlsx.js?v=20261025c";
-import { autoCode } from "./autocode.js?v=20261025c";
+import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261026a";
+import { fmt, fmtP, stars } from "./stats.js?v=20261026a";
+import { makeXlsx } from "./xlsx.js?v=20261026a";
+import { autoCode } from "./autocode.js?v=20261026a";
 
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");

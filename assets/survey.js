@@ -1,4 +1,4 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, CONSENT, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js?v=20261025c";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, CONSENT, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js?v=20261026a";
 let ESSAY_CFG = DEFAULT_ESSAY_CFG;
 
 const DRAFT_KEY = "post-survey-draft-v2";
@@ -84,6 +84,8 @@ function renderStart() {
       el("h2", {}, el("span", { "aria-hidden": "true", text: "🎒 " }), "이번 학기에 참여한 활동"),
       el("p", { class: "small", text: "해당하는 것을 모두 골라 주세요." }),
       chk("actAi", ACT_AI, "actAi"), chk("actCuri", ACT_CURI, "actCuri"))
+,
+    el("p", { class: "ver", text: `버전 ${APP_VERSION} · 35문항 + 서술형` })
   ];
 }
 

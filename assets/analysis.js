@@ -1,6 +1,6 @@
 // 사후 설문 분석 (브라우저·Node 공용 순수 함수)
-import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES, PRE_DOMAIN } from "./items.js?v=20261025c";
-import { mean, sd, pairedT, welchT, cronbach, spearman } from "./stats.js?v=20261025c";
+import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES, PRE_DOMAIN } from "./items.js?v=20261026a";
+import { mean, sd, pairedT, welchT, cronbach, spearman } from "./stats.js?v=20261026a";
 
 const isNum = v => typeof v === "number" && Number.isFinite(v);
 export const keyOf = r => `${r.grade}-${r.cls}-${r.num}`;
