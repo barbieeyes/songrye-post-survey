@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261025b";
 const PRE_DOM = `영역${PRE_DOMAIN.short.split(" ")[0]}`, AI_NAME = `영역${AI_DOMAIN.short.split(" ")[0]}`, EN = ESSAY.n;
 const AI_ONLY_DOM = DOMAINS.find(d => d.items.some(i => AI_ONLY_ITEMS.includes(i.n)));
-import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js";
-import { fmt, fmtP, stars } from "./stats.js";
-import { makeXlsx } from "./xlsx.js";
-import { autoCode } from "./autocode.js";
+import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261025b";
+import { fmt, fmtP, stars } from "./stats.js?v=20261025b";
+import { makeXlsx } from "./xlsx.js?v=20261025b";
+import { autoCode } from "./autocode.js?v=20261025b";
 
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");
