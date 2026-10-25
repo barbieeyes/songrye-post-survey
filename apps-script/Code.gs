@@ -10,7 +10,7 @@ function doPost(e) {
     var a = d.answers || {};
     var row = [
       Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss"),
-      num_(d.grade), num_(d.cls), num_(d.num),
+      num_(d.grade), num_(d.cls), num_(d.num), text_(d.name).slice(0, 20),
       d.act_ai ? "예" : "아니오", d.act_curi ? "예" : "아니오"
     ];
     for (var n = 1; n <= 8; n++) {
@@ -35,7 +35,7 @@ function doPost(e) {
 
 // 처음 한 번: Apps Script 편집기에서 setupHeader 를 실행하면 '응답' 시트 1행에 머리글을 씁니다.
 function setupHeader() {
-  var h = ["제출 시각", "학년", "반", "번호", "AI 문제 풀기", "큐리 탐구"];
+  var h = ["제출 시각", "학년", "반", "번호", "이름", "AI 문제 풀기", "큐리 탐구"];
   for (var n = 1; n <= 8; n++) h.push(n + "_수업전", n + "_수업후");
   for (var m = 9; m <= 35; m++) h.push(String(m));
   h.push("36_①처음", "36_②질문", "36_③수정한것", "앱 버전");

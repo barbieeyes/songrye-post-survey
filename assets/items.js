@@ -1,5 +1,5 @@
 // 사후 설문 문항 — 문구는 설문지(사후검사_설문지)와 한 글자도 다르지 않게 유지
-export const APP_VERSION = "2026-10-25a";
+export const APP_VERSION = "2026-10-25b";
 // 구글 스프레드시트(Apps Script 웹 앱) 주소 — 비어 있으면 시트로는 보내지 않음
 export const SHEET_URL = "";
 export const SUPABASE_URL = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -7,7 +7,13 @@ export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 
 export const SCALE = ["전혀 그렇지 않다", "그렇지 않다", "보통이다", "그렇다", "매우 그렇다"];
 
-export const INTRO = "본 설문지는 이번 학기 AI와 문답하며 오류를 찾아 수정하는 과학 수업이 여러분의 과학적 의사소통 능력에 어떤 도움을 주었는지 알아보기 위한 연구의 사후 검사입니다. 수집된 자료는 연구 목적으로만 사용되며 성적과 관계없고 익명으로 처리됩니다. 정답이 있는 검사가 아니므로 솔직하게 응답해 주시기 바랍니다.";
+export const INTRO = "본 설문지는 이번 학기 AI와 문답하며 오류를 찾아 수정하는 과학 수업이 여러분의 과학적 의사소통 능력에 어떤 도움을 주었는지 알아보기 위한 연구의 사후 검사입니다. 수집된 자료는 연구 목적으로만 사용되며 성적과 관계없습니다. 이름은 응답 확인용으로만 쓰며, 분석과 보고서에는 이름이 드러나지 않습니다. 정답이 있는 검사가 아니므로 솔직하게 응답해 주시기 바랍니다.";
+
+export const CONSENT = {
+  items: [["수집 항목", "학년, 반, 번호, 이름, 설문 응답"], ["이용 목적", "연구 분석과 응답 확인(중복·누락 확인)"], ["보유 기간", "연구 보고서 제출 후 파기"]],
+  note: "동의하지 않을 수 있으며, 동의하지 않아도 성적 등 어떤 불이익도 없습니다.",
+  label: "위 내용을 읽었으며 개인정보 수집·이용에 동의합니다."
+};
 
 export const ACT_AI = "AI와 문답하며 과학 문제 풀기";
 export const ACT_CURI = "큐리로 탐구 보고서 쓰기";

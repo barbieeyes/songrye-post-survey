@@ -1,4 +1,4 @@
-import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js?v=20261025b";
+import { APP_VERSION, SUPABASE_URL, SUPABASE_KEY, SHEET_URL, SCALE, INTRO, CONSENT, ACT_AI, ACT_CURI, ESSAY, visibleDomains, ALL_ITEMS, loadEssayConfig, DEFAULT_ESSAY_CFG } from "./items.js?v=20261025c";
 let ESSAY_CFG = DEFAULT_ESSAY_CFG;
 
 const DRAFT_KEY = "post-survey-draft-v2";
@@ -69,8 +69,16 @@ function renderStart() {
     el("div", { class: "card intro", text: INTRO }),
     el("div", { class: "card" },
       el("h2", {}, el("span", { "aria-hidden": "true", text: "🙋 " }), "나의 정보"),
-      el("p", { class: "small", text: "이름은 받지 않아요. 학년·반·번호만 골라 주세요." }),
       el("div", { class: "row" }, sel("grade", "학년", 3, S.grade, "grade"), sel("cls", "반", 15, S.cls, "cls"), sel("num", "번호", 35, S.num, "num")),
+      el("div", { class: "field name-field" }, el("label", { for: "name", text: "이름" }),
+        el("input", { id: "name", type: "text", maxlength: "20", autocomplete: "name", value: S.name || "", placeholder: "이름을 써 주세요", oninput: e => { S.name = e.target.value; save(); } })),
+      el("div", { class: "consent" },
+        el("h3", { text: "[필수] 개인정보 수집·이용 동의" }),
+        el("ul", {}, ...CONSENT.items.map(([k, v]) => el("li", {}, el("b", { text: `${k}: ` }), v))),
+        el("p", { class: "small", text: CONSENT.note }),
+        el("label", { class: "check", for: "consent" },
+          el("input", { type: "checkbox", id: "consent", checked: !!S.consent, onchange: e => { S.consent = e.target.checked; save(); } }),
+          el("span", { text: CONSENT.label }))),
       el("div", { id: "startErr" })),
     el("div", { class: "card" },
       el("h2", {}, el("span", { "aria-hidden": "true", text: "🎒 " }), "이번 학기에 참여한 활동"),
@@ -161,6 +169,8 @@ function validateCurrent() {
   if (cur === "start") {
     const box = document.getElementById("startErr");
     if (!S.grade || !S.cls || !S.num) { box.replaceChildren(el("div", { class: "alert err", role: "alert", text: "학년, 반, 번호를 모두 골라 주세요." })); return false; }
+    if (!String(S.name || "").trim()) { box.replaceChildren(el("div", { class: "alert err", role: "alert", text: "이름을 써 주세요." })); document.getElementById("name").focus(); return false; }
+    if (!S.consent) { box.replaceChildren(el("div", { class: "alert err", role: "alert", text: "개인정보 수집·이용에 동의해야 설문을 시작할 수 있어요." })); document.getElementById("consent").focus(); return false; }
     box.replaceChildren();
     return true;
   }
@@ -189,7 +199,7 @@ function buildPayload() {
   }
   const trim = s => String(s || "").trim().slice(0, 1500);
   return {
-    grade: Number(S.grade), cls: Number(S.cls), num: Number(S.num),
+    grade: Number(S.grade), cls: Number(S.cls), num: Number(S.num), name: String(S.name || "").trim().slice(0, 20), consent: !!S.consent,
     act_ai: !!S.actAi, act_curi: !!S.actCuri, answers,
     essay: { first: trim(S.essay.first), question: trim(S.essay.question), revised: trim(S.essay.revised), prompt: ESSAY_CFG.question.slice(0, 600), labels: ESSAY_CFG.labels },
     app_version: APP_VERSION
@@ -222,7 +232,7 @@ async function submit() {
     const info = { grade: S.grade, cls: S.cls, num: S.num, at: `${now.getMonth() + 1}월 ${now.getDate()}일 ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` };
     store.set(DONE_KEY, info);
     store.del(DRAFT_KEY);
-    S = { step: 0, grade: S.grade, cls: S.cls, num: S.num, actAi: false, actCuri: false, ans: {}, essay: { first: "", question: "", revised: "" } };
+    S = { step: 0, grade: S.grade, cls: S.cls, num: S.num, name: S.name, consent: S.consent, actAi: false, actCuri: false, ans: {}, essay: { first: "", question: "", revised: "" } };
     renderDone(info);
   } catch (e) {
     msg.replaceChildren(el("div", { class: "alert err", role: "alert", text: "보내지 못했어요. 인터넷 연결을 확인하고 '제출하기'를 다시 눌러 주세요. 쓴 내용은 그대로 남아 있어요." }));

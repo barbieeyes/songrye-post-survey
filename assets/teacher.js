@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261025b";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261025c";
 const PRE_DOM = `영역${PRE_DOMAIN.short.split(" ")[0]}`, AI_NAME = `영역${AI_DOMAIN.short.split(" ")[0]}`, EN = ESSAY.n;
 const AI_ONLY_DOM = DOMAINS.find(d => d.items.some(i => AI_ONLY_ITEMS.includes(i.n)));
-import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261025b";
-import { fmt, fmtP, stars } from "./stats.js?v=20261025b";
-import { makeXlsx } from "./xlsx.js?v=20261025b";
-import { autoCode } from "./autocode.js?v=20261025b";
+import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261025c";
+import { fmt, fmtP, stars } from "./stats.js?v=20261025c";
+import { makeXlsx } from "./xlsx.js?v=20261025c";
+import { autoCode } from "./autocode.js?v=20261025c";
 
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");
@@ -119,9 +119,9 @@ function manageBox() {
   } });
   const restore = async id => { try { const r = await rpc("post_survey_set_deleted", { pw: PW, ids: [id], deleted: false }); if (r.error) throw new Error(r.error); toast("응답을 되살렸어요."); await load(PW); location.hash = "#manage"; } catch (e) { toast("되살리지 못했어요."); } };
   const rows = all.map(r => {
-    const cb = el("input", { type: "checkbox", "aria-label": `${r.grade}학년 ${r.cls}반 ${r.num}번 ${r.at} 응답 선택`, onchange: e => { e.target.checked ? sel.add(r.id) : sel.delete(r.id); delBtn.disabled = !sel.size; delBtn.textContent = sel.size ? `선택한 응답 ${sel.size}건 삭제` : "선택한 응답 삭제"; } });
+    const cb = el("input", { type: "checkbox", "aria-label": `${r.grade}학년 ${r.cls}반 ${r.num}번 ${r.name || ""} ${r.at} 응답 선택`, onchange: e => { e.target.checked ? sel.add(r.id) : sel.delete(r.id); delBtn.disabled = !sel.size; delBtn.textContent = sel.size ? `선택한 응답 ${sel.size}건 삭제` : "선택한 응답 삭제"; } });
     const essay = r.essay ? [r.essay.first, r.essay.question, r.essay.revised].filter(Boolean).join(" / ") : "";
-    return [{ node: cb, text: "" }, r.at, `${r.grade}-${r.cls} ${r.num}번`, r.act_ai ? "예" : "–", r.act_curi ? "예" : "–", essay.length > 40 ? essay.slice(0, 40) + "…" : (essay || "–")];
+    return [{ node: cb, text: "" }, r.at, `${r.grade}-${r.cls} ${r.num}번 ${r.name || ""}`.trim(), r.act_ai ? "예" : "–", r.act_curi ? "예" : "–", essay.length > 40 ? essay.slice(0, 40) + "…" : (essay || "–")];
   });
   const del = DATA.deleted || [];
   return el("section", { class: "sec", id: "manage" },
@@ -130,7 +130,7 @@ function manageBox() {
     el("div", { class: "tools" }, delBtn, msg),
     all.length ? tableBlock(["선택", "제출 시각", "학생", "AI 문제 풀기", "큐리", "서술형(앞부분)"], rows, { left: [5] }) : el("p", { class: "small", text: "아직 응답이 없어요." }),
     del.length ? el("details", { style: "margin-top:10px" }, el("summary", { style: "cursor:pointer;font-weight:700", text: `삭제한 응답 ${del.length}건` }),
-      del.map(d => el("div", { class: "tools", style: "align-items:center" }, el("span", { class: "small", text: `${d.at} · ${d.grade}-${d.cls} ${d.num}번 (삭제 ${d.deleted_at})` }), el("button", { class: "tbtn", type: "button", onclick: () => restore(d.id), text: "되살리기" })))) : null);
+      del.map(d => el("div", { class: "tools", style: "align-items:center" }, el("span", { class: "small", text: `${d.at} · ${d.grade}-${d.cls} ${d.num}번 ${d.name || ""} (삭제 ${d.deleted_at})` }), el("button", { class: "tbtn", type: "button", onclick: () => restore(d.id), text: "되살리기" })))) : null);
 }
 
 function secStatus(R) {
@@ -297,7 +297,7 @@ function secEssay(R) {
       rows.map(r => {
         const codes = new Set(dirtyCodes.has(r.id) ? dirtyCodes.get(r.id) : (r.codes || []));
         return el("div", { class: "essay-card" },
-          el("div", { class: "meta", text: `${r.grade}-${r.cls} ${r.num}번 · ${r.at}${r.code_source ? ` · ${r.code_source === "teacher" ? "교사 확인" : r.code_source === "ai" ? "AI 분류" : "단어 규칙 분류"}` : ""}` }),
+          el("div", { class: "meta", text: `${r.grade}-${r.cls} ${r.num}번 ${r.name || ""} · ${r.at}${r.code_source ? ` · ${r.code_source === "teacher" ? "교사 확인" : r.code_source === "ai" ? "AI 분류" : "단어 규칙 분류"}` : ""}` }),
           r.essay.prompt && r.essay.prompt !== ((CFG && CFG.question) || "") ? el("p", { class: "note", text: `당시 질문: ${r.essay.prompt}` }) : null,
           el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[0]) || "①"}: ` }), r.essay.first || "—"), el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[1]) || "②"}: ` }), r.essay.question || "—"), el("p", {}, el("b", { text: `${(r.essay.labels && r.essay.labels[2]) || "③"}: ` }), r.essay.revised || "—"),
           el("div", { class: "codes", role: "group", "aria-label": "분류" }, ESSAY_CODES.map(c => el("label", {}, el("input", { type: "checkbox", checked: codes.has(c), onchange: e => {
@@ -342,14 +342,14 @@ function sentences(R) {
 
 function exportXlsx(R) {
   const allItems = DOMAINS.flatMap(d => d.items.map(it => ({ ...it, dual: !!d.dual })));
-  const head = ["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_수업후`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), `${EN}_①처음`, `${EN}_②질문`, `${EN}_③수정한것`, `${EN}_분류`];
-  const raw = [head, ...R.rows.map(r => [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오",
+  const head = ["학년", "반", "번호", "이름", "제출 시각", "AI 문제 풀기", "큐리 탐구", ...allItems.flatMap(it => it.dual ? [`${it.n}_수업전`, `${it.n}_수업후`] : [`${it.n}${it.reverse ? "(원점수)" : ""}`]), `${EN}_①처음`, `${EN}_②질문`, `${EN}_③수정한것`, `${EN}_분류`];
+  const raw = [head, ...R.rows.map(r => [r.grade, r.cls, r.num, r.name || "", r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오",
     ...allItems.flatMap(it => { const a = r.answers[it.n] ?? r.answers[String(it.n)]; return it.dual ? [a ? a.pre : "", a ? a.now : ""] : [a ?? "해당 없음"]; }),
     r.essay.first || "", r.essay.question || "", r.essay.revised || "", (r.codes || []).join(", ")])];
   const r2 = v => Number.isFinite(v) ? Math.round(v * 100) / 100 : "";
-  const per = [["학년", "반", "번호", "제출 시각", "AI 문제 풀기", "큐리 탐구", "Ⅰ 수업 전 평균", "Ⅰ 수업 후 평균", "Ⅰ 향상(후−전)", ...DOMAINS.filter(d => !d.dual).map(d => `${d.short} 평균`), `${EN} 분류`],
+  const per = [["학년", "반", "번호", "이름", "제출 시각", "AI 문제 풀기", "큐리 탐구", "Ⅰ 수업 전 평균", "Ⅰ 수업 후 평균", "Ⅰ 향상(후−전)", ...DOMAINS.filter(d => !d.dual).map(d => `${d.short} 평균`), `${EN} 분류`],
     ...R.rows.map(r => { const D1 = DOMAINS[0], pre = domainScore(r, D1, "pre"), now = domainScore(r, D1, "now");
-      return [r.grade, r.cls, r.num, r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오", r2(pre), r2(now), r2(now - pre), ...DOMAINS.filter(d => !d.dual).map(d => r2(domainScore(r, d, "now"))), (r.codes || []).join(", ")]; })];
+      return [r.grade, r.cls, r.num, r.name || "", r.at, r.act_ai ? "예" : "아니오", r.act_curi ? "예" : "아니오", r2(pre), r2(now), r2(now - pre), ...DOMAINS.filter(d => !d.dual).map(d => r2(domainScore(r, d, "now"))), (r.codes || []).join(", ")]; })];
   const summ = [["영역", "구분", "n", "평균", "표준편차", "Cronbach α"]];
   for (const d of R.domains) for (const w of d.dual ? ["pre", "now"] : ["now"]) summ.push([d.name, d.dual ? (w === "pre" ? "수업 전" : "수업 후") : "", d[w].n, +fmt(d[w].mean, 3), +fmt(d[w].sd, 3), Number.isFinite(d[w].alpha.alpha) ? +fmt(d[w].alpha.alpha, 3) : ""]);
   summ.push([]); summ.push(["번호", "문항", "역채점", "구분", "n", "평균", "표준편차", "1", "2", "3", "4", "5"]);
@@ -359,7 +359,7 @@ function exportXlsx(R) {
   const T = R.dual.total; tt.push(["영역Ⅰ 수업 전 vs 수업 후(대응)", "영역 평균", T.n, +fmt(T.m1, 3), +fmt(T.sd1, 3), +fmt(T.m2, 3), +fmt(T.sd2, 3), +fmt(T.diff, 3), +fmt(T.t, 3), T.df, +T.p.toPrecision(4), +fmt(T.dz, 3)]);
   if (R.pre) { const pd = R.pre.method === "paired"; for (const i of [...R.pre.items, { ...R.pre.total, post: `${PRE_DOM} 평균`, pre: "" }]) tt.push([`${PRE_DOM} 사전 vs 사후(${pd ? "대응" : "Welch"})`, `${i.post}${i.pre ? ` (사전 ${i.pre})` : ""}`, pd ? i.n : `${i.n1}/${i.n2}`, +fmt(i.m1, 3), +fmt(i.sd1, 3), +fmt(i.m2, 3), +fmt(i.sd2, 3), +fmt(i.diff, 3), +fmt(i.t, 3), +fmt(i.df, 2), +i.p.toPrecision(4), +fmt(pd ? i.dz : i.d, 3)]); }
   for (const v of R.curi.vars) tt.push(["큐리 연결(스피어만)", `영역Ⅰ 향상 × ${v.label}`, v.n, "", "", "", "", "", "", "", Number.isFinite(v.p) ? +v.p.toPrecision(4) : "", Number.isFinite(v.rho) ? +fmt(v.rho, 3) : ""]);
-  const es = [["학년", "반", "번호", "당시 질문", "답1", "답2", "답3", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.essay.prompt || ESSAY.t, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
+  const es = [["학년", "반", "번호", "이름", "당시 질문", "답1", "답2", "답3", ...ESSAY_CODES, "분류 출처"], ...R.rows.filter(r => r.essay && (r.essay.first || r.essay.question || r.essay.revised)).map(r => [r.grade, r.cls, r.num, r.name || "", r.essay.prompt || ESSAY.t, r.essay.first || "", r.essay.question || "", r.essay.revised || "", ...ESSAY_CODES.map(c => (r.codes || []).includes(c) ? 1 : 0), r.code_source || ""])];
   const blob = makeXlsx([{ name: "학생별 점수", rows: per }, { name: "원자료", rows: raw }, { name: "영역별 요약", rows: summ }, { name: "t검정·상관", rows: tt }, { name: "서술형 분류", rows: es }]);
   const a = el("a", { href: URL.createObjectURL(blob), download: `사후설문_분석_${DATA.at.replace(/[ :]/g, "-")}.xlsx` });
   document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

@@ -90,3 +90,9 @@ fieldset.q .qtitle .num{display:inline-flex;align-items:center;justify-content:c
 .btn.primary{background:linear-gradient(135deg,#6D5BD0,#3E8EF7);border:none}
 .card h2{font-size:18px}
 @media (max-width:420px){ .dom-ico{width:46px;height:46px;font-size:28px} }
+
+.name-field{margin-top:10px}
+.name-field input{height:48px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;background:white;font-size:16px;width:100%;box-sizing:border-box}
+.consent{margin-top:14px;border:1.5px solid #C9CED8;border-radius:14px;padding:12px 14px;background:#FAFBFD}
+.consent h3{font-size:15px;margin:0 0 6px}
+.consent ul{margin:0 0 6px;padding-left:18px;font-size:14px;line-height:1.6}
