@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261026a";
+import { SUPABASE_URL, SUPABASE_KEY, DOMAINS, ESSAY_CODES, SCALE, ESSAY, loadEssayConfig, REVERSE, PRE_DOMAIN, AI_DOMAIN, AI_ONLY_ITEMS } from "./items.js?v=20261026b";
 const PRE_DOM = `영역${PRE_DOMAIN.short.split(" ")[0]}`, AI_NAME = `영역${AI_DOMAIN.short.split(" ")[0]}`, EN = ESSAY.n;
 const AI_ONLY_DOM = DOMAINS.find(d => d.items.some(i => AI_ONLY_ITEMS.includes(i.n)));
-import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261026a";
-import { fmt, fmtP, stars } from "./stats.js?v=20261026a";
-import { makeXlsx } from "./xlsx.js?v=20261026a";
-import { autoCode } from "./autocode.js?v=20261026a";
+import { analyze, readPreCsv, keyOf, domainScore } from "./analysis.js?v=20261026b";
+import { fmt, fmtP, stars } from "./stats.js?v=20261026b";
+import { makeXlsx } from "./xlsx.js?v=20261026b";
+import { autoCode } from "./autocode.js?v=20261026b";
 
 const PW_KEY = "post-survey-pw";
 const $app = document.getElementById("app");
@@ -139,7 +139,12 @@ function secStatus(R) {
     el("div", { class: "kpis" }, [["응답 학생", R.N, "명"], ["전체 제출", R.totalSubmissions, "건"], ["AI 문제 풀기 참여", R.acts.ai, "명"], ["큐리 탐구 참여", R.acts.curi, "명"], ["큐리 기록과 연결", R.curi.matched, "명"]]
       .map(([l, v, u]) => el("div", { class: "kpi" }, el("div", { class: "l", text: l }), el("div", { class: "v" }, `${v}`, el("span", { style: "font-size:14px;color:var(--ink-soft);font-weight:500", text: ` ${u}` }))))),
     tableBlock(["반", "설문 응답 수", "큐리 개인 제출 수", "그중 설문 응답", "응답률"], R.byClass.map(c => [c.cls.replace("-", "학년 ") + "반", c.n, c.curi || "–", c.curi ? c.both : "–", Number.isFinite(c.rate) ? `${Math.round(c.rate * 100)}%` : "–"])),
-    el("p", { class: "note", text: "응답률 = 큐리에 개인 제출한 학생 중 설문에도 응답한 학생 비율(학년·반·번호로 확인). 큐리를 하지 않은 반은 '–'로 표시돼요." }));
+    el("p", { class: "note", text: "응답률 = 큐리에 개인 제출한 학생 중 설문에도 응답한 학생 비율(학년·반·번호로 확인). 큐리를 하지 않은 반은 '–'로 표시돼요." }),
+    el("p", { class: "note", text: `응답 학생 = 학년·반·번호·이름이 같은 응답은 가장 최근 것 하나로 센 수예요. 전체 제출 ${R.totalSubmissions}건 중 ${R.totalSubmissions - R.N}건은 같은 학생이 다시 낸 것이에요.` }),
+    R.conflicts.length ? el("div", { class: "alert err", role: "alert" },
+      el("b", { text: `번호가 겹친 응답 ${R.conflicts.length}건: ` }),
+      `같은 번호에 이름이 다른 학생이 있어요. 한 명이 번호를 잘못 골랐을 수 있어요. 둘 다 분석에는 들어가지만, 큐리 기록과는 번호로만 연결돼요. `,
+      R.conflicts.map(c => `${c.key.replace(/^(\d+)-(\d+)-(\d+)$/, "$1학년 $2반 $3번")}: ${c.rows.map(r => `${r.name || "(이름 없음)"}(${r.at.slice(11)})`).join(", ")}`).join(" · ")) : "");
 }
 
 function secDomains(R) {

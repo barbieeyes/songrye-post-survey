@@ -1,16 +1,25 @@
 // 사후 설문 분석 (브라우저·Node 공용 순수 함수)
-import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES, PRE_DOMAIN } from "./items.js?v=20261026a";
-import { mean, sd, pairedT, welchT, cronbach, spearman } from "./stats.js?v=20261026a";
+import { DOMAINS, ALL_ITEMS, REVERSE, ESSAY_CODES, PRE_DOMAIN } from "./items.js?v=20261026b";
+import { mean, sd, pairedT, welchT, cronbach, spearman } from "./stats.js?v=20261026b";
 
 const isNum = v => typeof v === "number" && Number.isFinite(v);
 export const keyOf = r => `${r.grade}-${r.cls}-${r.num}`;
 const rev = (n, v) => (isNum(v) && REVERSE.includes(n) ? 6 - v : v);
 
-// 같은 학년·반·번호는 가장 최근 응답만 (rows는 제출 순서대로 들어옴)
+// 같은 학생(학년·반·번호·이름)은 가장 최근 응답만 (rows는 제출 순서대로 들어옴)
+// 번호가 같아도 이름이 다르면 다른 학생으로 보고 둘 다 남김(번호를 잘못 고른 경우)
+export const nameKey = r => String(r.name || "").replace(/\s/g, "");
+export const studentKey = r => `${keyOf(r)}-${nameKey(r)}`;
 export function latestOnly(rows) {
   const m = new Map();
-  for (const r of rows) m.set(keyOf(r), r);
-  return [...m.values()].sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num);
+  for (const r of rows) m.set(studentKey(r), r);
+  return [...m.values()].sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num || nameKey(a).localeCompare(nameKey(b)));
+}
+// 같은 학년·반·번호에 이름이 다른 응답 (번호를 잘못 고른 학생 찾기)
+export function numberConflicts(rows) {
+  const m = new Map();
+  for (const r of rows) { const k = keyOf(r); if (!m.has(k)) m.set(k, new Map()); m.get(k).set(nameKey(r), r); }
+  return [...m.entries()].filter(([, v]) => v.size > 1).map(([k, v]) => ({ key: k, rows: [...v.values()] }));
 }
 
 // 한 학생의 문항 점수 (역채점 적용). which: 'now' | 'pre' (영역Ⅰ만)
@@ -31,7 +40,7 @@ function rawVal(r, n, which) { const a = r.answers ? r.answers[n] ?? r.answers[S
 export function analyze(allRows, curiList = [], preRows = null) {
   const rows = latestOnly(allRows);
   const N = rows.length;
-  const out = { N, totalSubmissions: allRows.length };
+  const out = { N, totalSubmissions: allRows.length, conflicts: numberConflicts(rows) };
 
   // ── 응답 현황 ──
   const curiBy = new Map(), curiKeys = new Set(curiList.map(c => `${c.grade}-${c.cls}-${c.num}`)), bothBy = new Map();
